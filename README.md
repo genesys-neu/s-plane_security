@@ -22,9 +22,12 @@ This Python script preprocesses a dataset comprising multiple CSV files containi
    - Navigate to the directory containing the script (`dataset_preprocessing.py`).
    - Run the script with the following command:
      ```
-     python dataset_preprocessing.py -d <dataset_directory>
+     python dataset_preprocessing.py [-d <dataset_directory>] [-o <output_filename>] [-a <attacker_mac_address>]
      ```
-     Replace `<dataset_directory>` with the path to the directory containing the dataset files.
+     All arguments are optional.
+     - Replace `<dataset_directory>` with the path to the directory containing the dataset files.
+     - Replace `<output_filename>` with the desired name for the output CSV file.
+     - Replace `<attacker_mac_address>` with the MAC address of the attacker for labeling malicious traffic.
 
 3. **Output**:
    - The script will process all CSV files in the specified directory and subdirectories.
@@ -32,11 +35,10 @@ This Python script preprocesses a dataset comprising multiple CSV files containi
    - The output file will be saved in the current directory with the name `final_dataset.csv`.
 
 4. **Customization**:
-   - Modify the `attacker` variable in the script to specify the attacker's MAC address for labeling malicious traffic.
-   - Adjust any other parameters or preprocessing steps in the script according to your dataset requirements.
+- Adjust any other parameters or preprocessing steps in the script according to your dataset requirements.
 
 ### Example
 ```
-python dataset_preprocessing.py -d ./DataCollectionPTP/DU
+python dataset_preprocessing.py -d ./DataCollectionPTP/DU -o final_dataset.csv
 ```
 This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
