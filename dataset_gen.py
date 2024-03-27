@@ -70,9 +70,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--directory", default='./DataCollectionPTP/DU',
                         help="directory to use when building dataset")
+    parser.add_argument("-o", "--output", default='final_dataset.csv',
+                        help="output file name for the final dataset")
+    parser.add_argument("-a", "--attacker", default='68:05:ca:2e:59:73',
+                        help="MAC address of the attacker")
     args = parser.parse_args()
 
     directory = args.directory
+    output_file = args.output
+    attacker = args.attacker
 
     # Recursively iterate over all files and subdirectories
     for root, _, files in os.walk(directory):
