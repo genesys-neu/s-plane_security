@@ -4,11 +4,6 @@ import pandas as pd
 import argparse
 
 
-# List to store DataFrames from all .csv files
-dfs = []
-attacker = '68:05:ca:2e:59:73'
-
-
 def map_categories(df, columns):
     # Initialize a mapping dictionary
     mapping = {}
@@ -29,7 +24,7 @@ def map_categories(df, columns):
 
 
 def label_data(df, t_type, mapping):
-    if t_type == 'benign':
+    if t_type == 'Benign':
         df['Label'] = 0
     elif t_type == 'Announce':
         df['Label'] = df['Source'].apply(lambda x: 1 if x == mapping[attacker] else 0)
@@ -40,8 +35,8 @@ def load_data(input_file, attack_type):
     # input_file = "./DataCollectionPTP/DU/BenignTraffic/run1-12sep-aerial-udpDL.csv"
     df = pd.read_csv(input_file)
 
-    # Remove rows with '-' in Protocol column
-    df = df[df['Protocol'] == 'PTPv2']
+    # Only keep rows with PTPv2 in Protocol column
+    df = df[df['Protocol'].str.contains('PTP', case=False)]
     # Drop the Protocol column
     df.drop(columns=['Protocol'], inplace=True)
     # Apply mapping function to both 'Source' and 'Destination' columns simultaneously
@@ -67,9 +62,17 @@ def load_data(input_file, attack_type):
 
 if __name__ == "__main__":
 
-    # Directory containing .csv files
-    directory = "./DataCollectionPTP/DU"
+    # List to store DataFrames from all .csv files
+    dfs = []
+    attacker = '68:05:ca:2e:59:73'
+    output_file = 'final_dataset.csv'
+
     parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--directory", default='./DataCollectionPTP/DU',
+                        help="directory to use when building dataset")
+    args = parser.parse_args()
+
+    directory = args.directory
 
     # Recursively iterate over all files and subdirectories
     for root, _, files in os.walk(directory):
@@ -78,16 +81,24 @@ if __name__ == "__main__":
             if file.endswith(".csv"):
                 # Construct the full path to the .csv file
                 file_path = os.path.join(root, file)
-
-                # Extract the section after the last directory
-                section = os.path.basename(os.path.dirname(root))
-                print(root)
-                print(section)
-                if section == 'Announce':
+                # print(root)
+                if 'BenignTraffic' in root:
+                    init_df = load_data(file_path, 'Benign')
+                    # print(init_df)
+                    dfs.append(init_df)
+                else:
+                    # Extract the section after the last directory
+                    section = os.path.basename(os.path.dirname(root))
+                    # print(root)
+                    # print(section)
                     # Read the .csv file into a DataFrame and label it
                     init_df = load_data(file_path, section)
-                    print(init_df)
+                    # print(init_df)
+                    dfs.append(init_df)
 
     # Concatenate the list of DataFrames into a single DataFrame
     final_df = pd.concat(dfs, ignore_index=True)
-    print(final_df)
+    # print(final_df)
+    # Save the final DataFrame to a CSV file
+    final_df.to_csv(output_file, index=False)
+    print(f"Final dataset saved to {output_file}")
