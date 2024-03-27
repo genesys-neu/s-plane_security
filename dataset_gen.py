@@ -6,37 +6,46 @@ import argparse
 
 # List to store DataFrames from all .csv files
 dfs = []
+attacker = '68:05:ca:2e:59:73'
 
 
-def load_data(input_file):
-    #input_file = "./DataCollectionPTP/DU/BenignTraffic/run1-12sep-aerial-udpDL.csv"
+def map_categories(df, columns):
+    # Initialize a mapping dictionary
+    mapping = {}
+    code = 0
+    # Iterate over the specified columns
+    for column in columns:
+        # Iterate over unique values in the column
+        for value in df[column].unique():
+            # Map each unique value to a code if not already mapped
+            if value not in mapping:
+                mapping[value] = code
+                # Increment the code for the next value
+                code += 1
+    # Apply the mapping to all specified columns
+    for column in columns:
+        df[column] = df[column].map(mapping)
+    return df, mapping
 
+
+def label_data(df, t_type, mapping):
+    if t_type == 'benign':
+        df['Label'] = 0
+    elif t_type == 'Announce':
+        df['Label'] = df['Source'].apply(lambda x: 1 if x == mapping[attacker] else 0)
+    return df
+
+
+def load_data(input_file, attack_type):
+    # input_file = "./DataCollectionPTP/DU/BenignTraffic/run1-12sep-aerial-udpDL.csv"
     df = pd.read_csv(input_file)
 
     # Remove rows with '-' in Protocol column
     df = df[df['Protocol'] == 'PTPv2']
-
     # Drop the Protocol column
     df.drop(columns=['Protocol'], inplace=True)
-    # print(df.iloc[50:75])
-
-    """
-    # Convert the Sequence ID column to numeric, coercing errors to NaN
-    df['SequenceID'] = pd.to_numeric(df['SequenceID'], errors='coerce')
-    # Replace NaN with -1 because these are not PTP packets
-    df['SequenceID'] = df['SequenceID'].fillna(-1).astype(int)
-    """
-
-    # Convert categorical to numeric
-    # Create a dictionary to map unique labels from both columns to the same integer encoding
-    label_map = {}
-    unique_labels = sorted(set(df['Source']) | set(df['Destination']))
-    for i, label in enumerate(unique_labels):
-        label_map[label] = i
-
-    # Encode both 'Source' and 'Destination' columns using the label map
-    df['Source'] = df['Source'].map(label_map)
-    df['Destination'] = df['Destination'].map(label_map)
+    # Apply mapping function to both 'Source' and 'Destination' columns simultaneously
+    df, mapping = map_categories(df, ['Source', 'Destination'])
 
     # Get the list of remaining categorical columns
     categorical_columns = df.select_dtypes(include=['object']).columns
@@ -49,18 +58,10 @@ def load_data(input_file):
     # And drop the Time column
     df.drop(columns=['Time'], inplace=True)
 
-    column_types = df.dtypes
-
+    # column_types = df.dtypes
     # print(df.iloc[55:75])
     # print(column_types)
-    return df
-
-
-def label_data(df, malicious):
-    if malicious:
-        df['Label'] = 1
-    else:
-        df['Label'] = 0
+    label_data(df, attack_type, mapping)
     return df
 
 
@@ -77,15 +78,15 @@ if __name__ == "__main__":
             if file.endswith(".csv"):
                 # Construct the full path to the .csv file
                 file_path = os.path.join(root, file)
-                # Check if the path contains 'BenignTraffic'
-                if 'BenignTraffic' in root:
-                    # print(root)
-                    # Read the .csv file into a DataFrame and append it to the benign_dfs list
-                    init_df = load_data(file_path)
-                    # Add the labels for benign traffic (0)
-                    init_df = label_data(init_df, False)
-                    # print(init_df)
-                    dfs.append(init_df)
+
+                # Extract the section after the last directory
+                section = os.path.basename(os.path.dirname(root))
+                print(root)
+                print(section)
+                if section == 'Announce':
+                    # Read the .csv file into a DataFrame and label it
+                    init_df = load_data(file_path, section)
+                    print(init_df)
 
     # Concatenate the list of DataFrames into a single DataFrame
     final_df = pd.concat(dfs, ignore_index=True)
