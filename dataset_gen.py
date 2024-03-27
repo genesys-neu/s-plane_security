@@ -28,6 +28,7 @@ def label_data(df, t_type, mapping):
         df['Label'] = 0
     elif t_type == 'Announce':
         df['Label'] = df['Source'].apply(lambda x: 1 if x == mapping[attacker] else 0)
+    # TODO: Add Sync_FollowUp attack logic here
     return df
 
 
