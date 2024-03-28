@@ -28,7 +28,24 @@ def label_data(df, t_type, mapping):
         df['Label'] = 0
     elif t_type == 'Announce':
         df['Label'] = df['Source'].apply(lambda x: 1 if x == mapping[attacker] else 0)
-    # TODO: Add Sync_FollowUp attack logic here
+    elif t_type == 'Sync_FollowUp':
+        last_sync_id = None
+        last_follow_up_id = None
+        for index, row in df.iterrows():
+            if row['MessageType'] == 4:
+                if last_sync_id is not None and row['SequenceID'] <= last_sync_id:
+                    df.at[index, 'Label'] = 1
+                else:
+                    df.at[index, 'Label'] = 0
+                last_sync_id = row['SequenceID']
+            elif row['MessageType'] == 3:
+                if last_follow_up_id is not None and row['SequenceID'] <= last_follow_up_id:
+                    df.at[index, 'Label'] = 1
+                else:
+                    df.at[index, 'Label'] = 0
+                last_follow_up_id = row['SequenceID']
+            else:
+                df.at[index, 'Label'] = 0
     return df
 
 
@@ -58,6 +75,8 @@ def load_data(input_file, attack_type):
     # print(df.iloc[55:75])
     # print(column_types)
     label_data(df, attack_type, mapping)
+    # From float to Integers
+    df['Label'] = df['Label'].astype(int)
     return df
 
 
