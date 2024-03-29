@@ -29,23 +29,37 @@ def label_data(df, t_type, mapping):
     elif t_type == 'Announce':
         df['Label'] = df['Source'].apply(lambda x: 1 if x == mapping[attacker] else 0)
     elif t_type == 'Sync_FollowUp':
-        last_sync_id = None
-        last_follow_up_id = None
+        sync = None
+        chunk = list()
         for index, row in df.iterrows():
             if row['MessageType'] == 4:
-                if last_sync_id is not None and row['SequenceID'] <= last_sync_id:
-                    df.at[index, 'Label'] = 1
+                if sync == None:
+                    sync = (row, index)
                 else:
-                    df.at[index, 'Label'] = 0
-                last_sync_id = row['SequenceID']
+                    df.at[sync[1], 'Label'] = 1
+                    sync = (row, index)
             elif row['MessageType'] == 3:
-                if last_follow_up_id is not None and row['SequenceID'] <= last_follow_up_id:
+                if not sync:
                     df.at[index, 'Label'] = 1
-                else:
-                    df.at[index, 'Label'] = 0
-                last_follow_up_id = row['SequenceID']
+                elif  row['SequenceID'] != sync[0]['SequenceID']:
+                    df.at[index, 'Label'] = 1
+                elif row['SequenceID'] == sync[0]['SequenceID']:
+                    if row['SequenceID'] not in chunk:
+                        df.at[index, 'Label'] = 0
+                        df.at[sync[1], 'Label'] = 0
+                        sync = None
+                    else:
+                        df.at[index, 'Label'] = 1
+                        df.at[sync[1], 'Label'] = 1
+                    if len(chunk)< 1000:
+                        chunk.append(row['SequenceID'])
+                    else:
+                        chunk.pop(0)
+                        chunk.append(row['SequenceID'])
             else:
                 df.at[index, 'Label'] = 0
+            
+                
     return df
 
 
