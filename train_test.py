@@ -277,9 +277,11 @@ if __name__ == "__main__":
     print(conf_matrix)
 
     # Plot confusion matrix
+    '''
     plt.figure(figsize=(8, 6))
     sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
     plt.show()
+    '''
