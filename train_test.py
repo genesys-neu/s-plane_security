@@ -6,6 +6,9 @@ from torch.utils.data import DataLoader, Dataset
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import torch.optim as optim
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 np.random.seed(17)
@@ -72,40 +75,43 @@ def load_data(file, sequence):
         futures = [executor.submit(load_chunk, start, end) for start, end in chunk_indices]
         chunks = [future.result() for future in futures]
 
-    # Initialize lists to store training and validation data
+    # Randomly select chunks for validation
+    valid_test_indices = np.random.choice(num_chunks, size=int(num_chunks * 0.2), replace=False)
+
+    # Separate validation and testing indices
+    valid_indices = valid_test_indices[:len(valid_test_indices) // 2]
+    test_indices = valid_test_indices[len(valid_test_indices) // 2:]
+
+    # Initialize lists to store training, validation, and testing data
     training_data = []
     validation_data = []
+    testing_data = []
 
-    # Randomly select chunks for validation
-    validation_chunk_indices = np.random.choice(num_chunks, size=int(num_chunks * 0.2), replace=False)
-
-    # Iterate over each chunk and determine if it belongs to training or validation
+    # Iterate over each chunk and determine if it belongs to training, validation, or testing
     for i, chunk in enumerate(chunks):
-        if i in validation_chunk_indices:
+        if i in valid_indices:
             validation_data.extend(chunk.values.tolist())  # Append rows to validation_data
-            #print(chunk)
+        elif i in test_indices:
+            testing_data.extend(chunk.values.tolist())  # Append rows to testing_data
         else:
             training_data.extend(chunk.values.tolist())  # Append rows to training_data
 
     # Convert the lists of rows to DataFrames
-    # print(training_data)
-    training_data = pd.DataFrame(training_data, columns=chunk.columns)
-    validation_data = pd.DataFrame(validation_data, columns=chunk.columns)
+    training_data = pd.DataFrame(training_data, columns=column_names)
+    validation_data = pd.DataFrame(validation_data, columns=column_names)
+    testing_data = pd.DataFrame(testing_data, columns=column_names)
 
-    # Assign column names to the DataFrames
-    training_data.columns = column_names
-    validation_data.columns = column_names
-    # print(training_data)
-
-    # Extract the corresponding labels for training and validation data
+    # Extract the corresponding labels for training, validation, and testing data
     training_labels = training_data['Label']
     validation_labels = validation_data['Label']
+    testing_labels = testing_data['Label']
 
     # Remove the labels from the DataFrames
     training_data.drop(columns=['Label'], inplace=True)
     validation_data.drop(columns=['Label'], inplace=True)
+    testing_data.drop(columns=['Label'], inplace=True)
 
-    return training_data, validation_data, training_labels, validation_labels
+    return training_data, validation_data, testing_data, training_labels, validation_labels, testing_labels
 
 
 # Define additional metrics (e.g., accuracy)
@@ -122,23 +128,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
-    parser.add_argument("-s", "--sequence_length", type=int, default=10,
-                        help="length of sequence to use")
     parser.add_argument("-b", "--batch_size", type=int, default=32,
-                        help="batch size for training and validation data loaders")
+                        help="batch size for training and validation")
     args = parser.parse_args()
 
     input_file = args.file_input
-    sequence = args.sequence_length
     batch_size = args.batch_size
+    chunk_size = 100
 
-    train_data, validate_data, train_label, validate_label = load_data(input_file, sequence)
+    train_data, validate_data, test_data, train_label, validate_label, test_label = load_data(input_file, chunk_size)
 
     train_dataset = PTPDataset(train_data, train_label)
     val_dataset = PTPDataset(validate_data, validate_label)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_dataset = PTPDataset(test_data, test_label)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -163,6 +165,19 @@ if __name__ == "__main__":
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
+        # Randomly select batch size between 10 and 40
+        batch_size = np.random.randint(10, 41)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+        # Modify labels if any label in the batch is 1
+        for inputs, labels in train_loader:
+            if 1 in labels:
+                labels[:] = 1  # Modify all labels in the batch to be 1
+        for inputs, labels in val_loader:
+            if 1 in labels:
+                labels[:] = 1  # Modify all labels in the batch to be 1
+
         # Training phase
         model.train()
         running_loss = 0.0
@@ -172,13 +187,18 @@ if __name__ == "__main__":
 
             # Move inputs and labels to the GPU
             inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)  # Define outputs here
-            loss = criterion(outputs.squeeze(), labels.float())  # No need to convert labels to float
+            outputs = model(inputs)
+
+            # Round the predictions to 0 or 1
+            predicted = torch.round(outputs)
+
+            # Use rounded predictions in the loss calculation
+            loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
             loss.backward()
             optimizer.step()
 
             running_loss += loss.item()
-            running_accuracy += accuracy(outputs, labels)
+            running_accuracy += accuracy(predicted, labels)
 
         # Validation phase
         model.eval()  # Set model to evaluation mode
@@ -188,21 +208,45 @@ if __name__ == "__main__":
             for inputs, labels in val_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs.squeeze(), labels.float())
+
+                # Round the predictions to 0 or 1
+                predicted = torch.round(outputs)
+
+                # Use rounded predictions in the loss calculation
+                loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
                 val_loss += loss.item()
-                val_accuracy += accuracy(outputs, labels)
+                val_accuracy += accuracy(predicted, labels)
 
-        # Adjust learning rate
-        scheduler.step()
+    # Test phase
+    model.eval()  # Set model to evaluation mode
+    batch_size = 20
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        # Print average loss and accuracy for each epoch
-        print(f'Epoch {epoch + 1}, '
-              f'Training Loss: {running_loss / len(train_loader):.4f}, '
-              f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
-              f'Validation Loss: {val_loss / len(val_loader):.4f}, '
-              f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
+    # Modify labels if any label in the batch is 1
+    for inputs, labels in test_loader:
+        if 1 in labels:
+            labels[:] = 1  # Modify all labels in the batch to be 1
 
-        # Save model if validation loss decreases
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model.pth')
+    test_predictions = []
+    test_targets = []
+
+    with torch.no_grad():  # Disable gradient calculation during testing
+        for inputs, labels in test_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            predicted = torch.round(outputs)  # Round the predictions to 0 or 1
+            test_predictions.extend(predicted.cpu().numpy())
+            test_targets.extend(labels.cpu().numpy())
+
+    # Generate confusion matrix
+    conf_matrix = confusion_matrix(test_targets, test_predictions)
+    print("Confusion Matrix:")
+    print(conf_matrix)
+
+    # Plot confusion matrix
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.title('Confusion Matrix')
+    plt.show()
