@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, Dataset
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import torch.optim as optim
-import torch.optim as optim
 
 
 np.random.seed(17)
@@ -25,12 +24,13 @@ class LSTMClassifier(nn.Module):
     def forward(self, x):
         # Forward propagate through LSTM layer
         lstm_out, _ = self.lstm(x)
-
+        # print("lstm_out shape:", lstm_out.shape)
         # Only take the output from the final time step
-        lstm_out = lstm_out[:, -1, :]
-
+        # lstm_out = lstm_out[:, -1, :]
         # Forward propagate through the output layer
         out = self.fc(lstm_out)
+        # Apply sigmoid activation function
+        out = torch.sigmoid(out)
         return out
 
 
@@ -54,17 +54,18 @@ def load_data(file, sequence):
         data_chunk = pd.read_csv(file, skiprows=start_idx, nrows=end_idx - start_idx)
         return data_chunk
 
+    # Read column names from the CSV file
+    with open(file) as f:
+        column_names = f.readline().strip().split(',')
+
     # Read the data from the CSV file into a DataFrame to calculate its total length
     total_length = sum(1 for _ in open(file)) - 1  # Subtract 1 for the header row
 
     # Calculate the number of chunks needed
     num_chunks = total_length // sequence
 
-    # Calculate chunk size
-    chunk_size = total_length // num_chunks
-
     # Generate start and end indices for each chunk
-    chunk_indices = [(i * chunk_size, (i + 1) * chunk_size) for i in range(num_chunks)]
+    chunk_indices = [(i * sequence, (i + 1) * sequence) for i in range(num_chunks)]
 
     # Read chunks of data in parallel using ThreadPoolExecutor
     with ThreadPoolExecutor() as executor:
@@ -81,13 +82,20 @@ def load_data(file, sequence):
     # Iterate over each chunk and determine if it belongs to training or validation
     for i, chunk in enumerate(chunks):
         if i in validation_chunk_indices:
-            validation_data.append(chunk)
+            validation_data.extend(chunk.values.tolist())  # Append rows to validation_data
+            #print(chunk)
         else:
-            training_data.append(chunk)
+            training_data.extend(chunk.values.tolist())  # Append rows to training_data
 
-    # Concatenate the training and validation data into DataFrames
-    training_data = pd.concat(training_data)
-    validation_data = pd.concat(validation_data)
+    # Convert the lists of rows to DataFrames
+    # print(training_data)
+    training_data = pd.DataFrame(training_data, columns=chunk.columns)
+    validation_data = pd.DataFrame(validation_data, columns=chunk.columns)
+
+    # Assign column names to the DataFrames
+    training_data.columns = column_names
+    validation_data.columns = column_names
+    # print(training_data)
 
     # Extract the corresponding labels for training and validation data
     training_labels = training_data['Label']
@@ -111,17 +119,10 @@ def accuracy(output, target):
 
 if __name__ == "__main__":
 
-    # Define model parameters
-    input_size = train_data.shape[1]
-    hidden_size = 64
-    num_layers = 2
-    output_size = 1
-    num_epochs = 100
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
-    parser.add_argument("-s", "--sequence_length", type=int, default=20,
+    parser.add_argument("-s", "--sequence_length", type=int, default=10,
                         help="length of sequence to use")
     parser.add_argument("-b", "--batch_size", type=int, default=32,
                         help="batch size for training and validation data loaders")
@@ -141,6 +142,13 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Define model parameters
+    input_size = train_data.shape[1]
+    hidden_size = 64
+    num_layers = 2
+    output_size = 1
+    num_epochs = 100
+
     # Instantiate the model and move it to the GPU
     model = LSTMClassifier(input_size, hidden_size).to(device)
 
@@ -150,6 +158,8 @@ if __name__ == "__main__":
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+    best_val_loss = float('inf')  # Initialize best validation loss
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
@@ -162,7 +172,8 @@ if __name__ == "__main__":
 
             # Move inputs and labels to the GPU
             inputs, labels = inputs.to(device), labels.to(device)
-            loss = criterion(outputs.squeeze(), labels.float())  # Squeeze the output tensor and convert labels to float
+            outputs = model(inputs)  # Define outputs here
+            loss = criterion(outputs.squeeze(), labels.float())  # No need to convert labels to float
             loss.backward()
             optimizer.step()
 
@@ -175,6 +186,7 @@ if __name__ == "__main__":
         val_accuracy = 0.0
         with torch.no_grad():  # Disable gradient calculation during validation
             for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
                 loss = criterion(outputs.squeeze(), labels.float())
                 val_loss += loss.item()
@@ -190,3 +202,7 @@ if __name__ == "__main__":
               f'Validation Loss: {val_loss / len(val_loader):.4f}, '
               f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
 
+        # Save model if validation loss decreases
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), 'best_model.pth')
