@@ -28,10 +28,10 @@ class LSTMClassifier(nn.Module):
         # Forward propagate through LSTM layer
         lstm_out, _ = self.lstm(x)
         # print("lstm_out shape:", lstm_out.shape)
-        # Only take the output from the final time step
-        # lstm_out = lstm_out[:, -1, :]
+
         # Forward propagate through the output layer
         out = self.fc(lstm_out)
+        # print(f'out shape: {out.shape}')
         # Apply sigmoid activation function
         out = torch.sigmoid(out)
         return out
@@ -188,14 +188,6 @@ if __name__ == "__main__":
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-        # Modify labels if any label in the batch is 1
-        for inputs, labels in train_loader:
-            if 1 in labels:
-                labels[:] = 1  # Modify all labels in the batch to be 1
-        for inputs, labels in val_loader:
-            if 1 in labels:
-                labels[:] = 1  # Modify all labels in the batch to be 1
-
         # Training phase
         model.train()
         running_loss = 0.0
@@ -203,15 +195,28 @@ if __name__ == "__main__":
         for inputs, labels in train_loader:
             optimizer.zero_grad()
 
+            # Modify labels if any label in the batch is 1
+            '''
+            print(f'Initial labels {labels}')
+            if 1 in labels:
+                labels[:] = 1  # Modify all labels in the batch to be 1
+            print(f'Final labels {labels}')
+            '''
+
             # Move inputs and labels to the GPU
+            # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
             inputs, labels = inputs.to(device), labels.to(device)
+            # Forward pass
             outputs = model(inputs)
+            # print(f'Outputs: {outputs}')
 
             # Round the predictions to 0 or 1
             predicted = torch.round(outputs)
 
+            # Use raw probabilities in the loss calculation
+            loss = criterion(outputs.squeeze(), labels.float())
             # Use rounded predictions in the loss calculation
-            loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
+            # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
             loss.backward()
             optimizer.step()
 
@@ -224,6 +229,10 @@ if __name__ == "__main__":
         val_accuracy = 0.0
         with torch.no_grad():  # Disable gradient calculation during validation
             for inputs, labels in val_loader:
+                '''
+                if 1 in labels:
+                    labels[:] = 1  # Modify all labels in the batch to be 1
+                '''
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
 
@@ -231,7 +240,7 @@ if __name__ == "__main__":
                 predicted = torch.round(outputs)
 
                 # Use rounded predictions in the loss calculation
-                loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
+                loss = criterion(outputs.squeeze(), labels.float())  # Use predicted instead of outputs
                 val_loss += loss.item()
                 val_accuracy += accuracy(predicted, labels)
 
