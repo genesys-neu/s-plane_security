@@ -51,6 +51,22 @@ class PTPDataset(Dataset):
         return sample, label
 
 
+class WeightedBCELoss(nn.Module):
+    def __init__(self, weight_fp=1, weight_fn=2):
+        super(WeightedBCELoss, self).__init__()
+        self.weight_fp = weight_fp
+        self.weight_fn = weight_fn
+
+    def forward(self, inputs, targets):
+        # Compute binary cross-entropy loss
+        bce_loss = nn.BCELoss()(inputs, targets)
+
+        # Compute custom weighted loss
+        loss = (targets * self.weight_fn * bce_loss) + ((1 - targets) * self.weight_fp * bce_loss)
+
+        return loss.mean()
+
+
 def load_data(file, sequence):
     def load_chunk(start_idx, end_idx):
         # Read a chunk of data from the CSV file
@@ -155,13 +171,15 @@ if __name__ == "__main__":
     model = LSTMClassifier(input_size, hidden_size).to(device)
 
     # Define the loss function (Binary Cross-Entropy Loss)
-    criterion = nn.BCELoss()
+    # criterion = nn.BCELoss()
+    # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
+    criterion = WeightedBCELoss(weight_fp=1, weight_fn=2)
 
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-    best_val_loss = float('inf')  # Initialize best validation loss
+    best_val_loss = float('inf')  # Initialize the best validation loss
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
@@ -216,6 +234,21 @@ if __name__ == "__main__":
                 loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
                 val_loss += loss.item()
                 val_accuracy += accuracy(predicted, labels)
+
+        # Adjust learning rate
+        scheduler.step()
+
+        # Print average loss and accuracy for each epoch
+        print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
+              f'Training Loss: {running_loss / len(train_loader):.4f}, '
+              f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
+              f'Validation Loss: {val_loss / len(val_loader):.4f}, '
+              f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
+
+        # Save model if validation loss decreases
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), 'best_model.pth')
 
     # Test phase
     model.eval()  # Set model to evaluation mode
