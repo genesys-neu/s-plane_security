@@ -32,12 +32,16 @@ def label_data(df, t_type, mapping):
         sync = None
         chunk = list()
         for index, row in df.iterrows():
+            df.at[index, 'Label'] = 1
             if row['MessageType'] == 4:
                 if sync == None:
-                    sync = (row, index)
+                    if row['SequenceID'] not in chunk:
+                        df.at[index, 'Label'] = 0
+                        sync = (row, index)
+                    else:
+                        df.at[index, 'Label'] = 1
                 else:
                     df.at[sync[1], 'Label'] = 1
-                    sync = (row, index)
             elif row['MessageType'] == 3:
                 if not sync:
                     df.at[index, 'Label'] = 1
@@ -58,7 +62,6 @@ def label_data(df, t_type, mapping):
                         chunk.append(row['SequenceID'])
             else:
                 df.at[index, 'Label'] = 0
-            
                 
     return df
 
@@ -90,7 +93,7 @@ def load_data(input_file, attack_type):
     # print(column_types)
     label_data(df, attack_type, mapping)
     # From float to Integers
-    df['Label'] = df['Label'].astype(int)
+    df['Label']= df['Label'].astype(int)
     return df
 
 
