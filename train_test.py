@@ -9,6 +9,7 @@ import torch.optim as optim
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 
 
 np.random.seed(17)
@@ -149,6 +150,8 @@ if __name__ == "__main__":
 
     input_file = args.file_input
     chunk_size = 100
+    training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
+                        'validation_accuracy': [], 'confusion_matrix': []}
 
     train_data, validate_data, test_data, train_label, validate_label, test_label = load_data(input_file, chunk_size)
 
@@ -163,7 +166,7 @@ if __name__ == "__main__":
     hidden_size = 64
     num_layers = 2
     output_size = 1
-    num_epochs = 100
+    num_epochs = 200
 
     # Instantiate the model and move it to the GPU
     model = LSTMClassifier(input_size, hidden_size).to(device)
@@ -178,6 +181,8 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     best_val_loss = float('inf')  # Initialize the best validation loss
+    patience = 10  # Number of epochs to wait for improvement
+    counter = 0  # Counter for patience
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
@@ -256,11 +261,25 @@ if __name__ == "__main__":
               f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
               f'Validation Loss: {val_loss / len(val_loader):.4f}, '
               f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
+        training_metrics['epochs'].append(epoch + 1)
+        training_metrics['training_loss'].append(running_loss / len(train_loader))
+        training_metrics['training_accuracy'].append(running_accuracy / len(train_loader))
+        training_metrics['validation_loss'].append(val_loss / len(val_loader))
+        training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), 'best_model.pth')
+            counter = 0  # Reset counter if there's improvement
+        else:
+            # Increment counter if there's no improvement
+            counter += 1
+
+        # Check early stopping condition
+        if counter >= patience:
+            print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
+            break
 
     # Test phase
     model.eval()  # Set model to evaluation mode
@@ -287,6 +306,11 @@ if __name__ == "__main__":
     conf_matrix = confusion_matrix(test_targets, test_predictions)
     print("Confusion Matrix:")
     print(conf_matrix)
+    training_metrics['confusion_matrix'].append(conf_matrix)
+
+    # Save the dictionary to a JSON file
+    with open('training_log.json', 'w') as jsonfile:
+        json.dump(training_metrics, jsonfile)
 
     # Plot confusion matrix
     '''
