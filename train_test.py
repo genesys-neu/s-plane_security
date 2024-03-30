@@ -205,8 +205,8 @@ if __name__ == "__main__":
                 predicted = torch.round(outputs)
                 # Adjust shapes for the last batch
                 if inputs.shape[0] < batch_size:
-                    outputs = outputs.view(-1)  # Flatten the output tensor
-                    labels = labels.view(-1)  # Flatten the label tensor
+                    outputs = outputs.flatten()  # Flatten the output tensor
+                    labels = labels.float().flatten()  # Flatten the label tensor
 
                 # Use raw probabilities in the loss calculation
                 loss = criterion(outputs.squeeze(), labels.float())
@@ -235,8 +235,8 @@ if __name__ == "__main__":
                     predicted = torch.round(outputs)
                     # Adjust shapes for the last batch
                     if inputs.shape[0] < batch_size:
-                        outputs = outputs.view(-1)  # Flatten the output tensor
-                        labels = labels.view(-1)  # Flatten the label tensor
+                        outputs = outputs.flatten()  # Flatten the output tensor
+                        labels = labels.float().flatten()  # Flatten the label tensor
 
                     # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
                     # Use rounded predictions in the loss calculation
