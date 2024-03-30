@@ -15,10 +15,8 @@ np.random.seed(17)
 
 
 class LSTMClassifier(nn.Module):
-    def __init__(self, input_dim, hidden_dim, batch_size):
+    def __init__(self, input_dim, hidden_dim):
         super(LSTMClassifier, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.batch_size = batch_size
 
         # Define the LSTM layer with batch_first=True
         self.lstm = nn.LSTM(input_dim, hidden_dim, batch_first=True)
@@ -27,10 +25,13 @@ class LSTMClassifier(nn.Module):
         self.fc = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
+        # Compute the sequence length (number of rows)
+        seq_length = x.size(1)
+
         # Initialize hidden state with zeros
-        h0 = torch.zeros(1, self.batch_size, self.hidden_dim).to(x.device)
+        h0 = torch.zeros(1, x.size(0), self.hidden_dim).to(x.device)
         # Initialize cell state with zeros
-        c0 = torch.zeros(1, self.batch_size, self.hidden_dim).to(x.device)
+        c0 = torch.zeros(1, x.size(0), self.hidden_dim).to(x.device)
 
         # Forward propagate LSTM
         lstm_out, _ = self.lstm(x, (h0, c0))
@@ -176,10 +177,9 @@ if __name__ == "__main__":
     num_layers = 2
     output_size = 1
     num_epochs = 100
-    batch_size = 50
 
     # Instantiate the model and move it to the GPU
-    model = LSTMClassifier(input_size, hidden_size, batch_size).to(device)
+    model = LSTMClassifier(input_size, hidden_size).to(device)
 
     # Define the loss function (Binary Cross-Entropy Loss)
     # criterion = nn.BCELoss()
@@ -207,16 +207,14 @@ if __name__ == "__main__":
             optimizer.zero_grad()
 
             # Modify labels if any label in the batch is 1
-            '''
-            print(f'Initial labels {labels}')
             if 1 in labels:
-                labels[:] = 1  # Modify all labels in the batch to be 1
-            print(f'Final labels {labels}')
-            '''
+                new_label = 1  # Modify all labels in the batch to be 1
+            else:
+                new_label = 0
 
             # Move inputs and labels to the GPU
             # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, new_label = inputs.to(device), new_label.to(device)
             # Forward pass
             outputs = model(inputs)
             # print(f'Outputs: {outputs}')
@@ -225,14 +223,14 @@ if __name__ == "__main__":
             predicted = torch.round(outputs)
 
             # Use raw probabilities in the loss calculation
-            loss = criterion(outputs.squeeze(), labels.float())
+            loss = criterion(outputs.squeeze(), new_label.float())
             # Use rounded predictions in the loss calculation
             # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
             loss.backward()
             optimizer.step()
 
             running_loss += loss.item()
-            running_accuracy += accuracy(predicted, labels)
+            running_accuracy += accuracy(predicted, new_label)
 
         # Validation phase
         model.eval()  # Set model to evaluation mode
@@ -240,20 +238,23 @@ if __name__ == "__main__":
         val_accuracy = 0.0
         with torch.no_grad():  # Disable gradient calculation during validation
             for inputs, labels in val_loader:
-                '''
+
+                # Modify labels if any label in the batch is 1
                 if 1 in labels:
-                    labels[:] = 1  # Modify all labels in the batch to be 1
-                '''
-                inputs, labels = inputs.to(device), labels.to(device)
+                    new_label = 1  # Modify all labels in the batch to be 1
+                else:
+                    new_label = 0
+
+                inputs, new_label = inputs.to(device), new_label.to(device)
                 outputs = model(inputs)
 
                 # Round the predictions to 0 or 1
                 predicted = torch.round(outputs)
 
                 # Use rounded predictions in the loss calculation
-                loss = criterion(outputs.squeeze(), labels.float())  # Use predicted instead of outputs
+                loss = criterion(outputs.squeeze(), new_label.float())  # Use predicted instead of outputs
                 val_loss += loss.item()
-                val_accuracy += accuracy(predicted, labels)
+                val_accuracy += accuracy(predicted, new_label)
 
         # Adjust learning rate
         scheduler.step()
