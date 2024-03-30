@@ -306,7 +306,9 @@ if __name__ == "__main__":
     conf_matrix = confusion_matrix(test_targets, test_predictions)
     print("Confusion Matrix:")
     print(conf_matrix)
-    training_metrics['confusion_matrix'].append(conf_matrix)
+    # Convert confusion matrix from NumPy array to list
+    conf_matrix_list = conf_matrix.tolist()
+    training_metrics['confusion_matrix'].append(conf_matrix_list)
 
     # Save the dictionary to a JSON file
     with open('training_log.json', 'w') as jsonfile:
