@@ -144,12 +144,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
-    parser.add_argument("-b", "--batch_size", type=int, default=32,
-                        help="batch size for training and validation")
+
     args = parser.parse_args()
 
     input_file = args.file_input
-    batch_size = args.batch_size
     chunk_size = 100
 
     train_data, validate_data, test_data, train_label, validate_label, test_label = load_data(input_file, chunk_size)
