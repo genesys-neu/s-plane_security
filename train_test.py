@@ -193,33 +193,33 @@ if __name__ == "__main__":
         for inputs, labels in train_loader:
             optimizer.zero_grad()
 
-            # Modify labels if any label in the batch is 1
-            '''
-            print(f'Initial labels {labels}')
-            if 1 in labels:
-                labels[:] = 1  # Modify all labels in the batch to be 1
-            print(f'Final labels {labels}')
-            '''
+            try:
+                # Move inputs and labels to the GPU
+                # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
+                inputs, labels = inputs.to(device), labels.to(device)
+                # Forward pass
+                outputs = model(inputs)
+                # print(f'Outputs: {outputs}')
 
-            # Move inputs and labels to the GPU
-            # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
-            inputs, labels = inputs.to(device), labels.to(device)
-            # Forward pass
-            outputs = model(inputs)
-            # print(f'Outputs: {outputs}')
+                # Round the predictions to 0 or 1
+                predicted = torch.round(outputs)
+                # Adjust shapes for the last batch
+                if inputs.shape[0] < batch_size:
+                    outputs = outputs.view(-1)  # Flatten the output tensor
+                    labels = labels.view(-1)  # Flatten the label tensor
 
-            # Round the predictions to 0 or 1
-            predicted = torch.round(outputs)
+                # Use raw probabilities in the loss calculation
+                loss = criterion(outputs.squeeze(), labels.float())
+                # Use rounded predictions in the loss calculation
+                # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
+                loss.backward()
+                optimizer.step()
 
-            # Use raw probabilities in the loss calculation
-            loss = criterion(outputs.squeeze(), labels.float())
-            # Use rounded predictions in the loss calculation
-            # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-            running_accuracy += accuracy(predicted, labels)
+                running_loss += loss.item()
+                running_accuracy += accuracy(predicted, labels)
+            except ValueError as e:
+                print(f'Error occurred in training epoch {epoch +1}: {e}')
+                continue
 
         # Validation phase
         model.eval()  # Set model to evaluation mode
@@ -227,20 +227,25 @@ if __name__ == "__main__":
         val_accuracy = 0.0
         with torch.no_grad():  # Disable gradient calculation during validation
             for inputs, labels in val_loader:
-                '''
-                if 1 in labels:
-                    labels[:] = 1  # Modify all labels in the batch to be 1
-                '''
-                inputs, labels = inputs.to(device), labels.to(device)
-                outputs = model(inputs)
+                try:
+                    inputs, labels = inputs.to(device), labels.to(device)
+                    outputs = model(inputs)
 
-                # Round the predictions to 0 or 1
-                predicted = torch.round(outputs)
+                    # Round the predictions to 0 or 1
+                    predicted = torch.round(outputs)
+                    # Adjust shapes for the last batch
+                    if inputs.shape[0] < batch_size:
+                        outputs = outputs.view(-1)  # Flatten the output tensor
+                        labels = labels.view(-1)  # Flatten the label tensor
 
-                # Use rounded predictions in the loss calculation
-                loss = criterion(outputs.squeeze(), labels.float())  # Use predicted instead of outputs
-                val_loss += loss.item()
-                val_accuracy += accuracy(predicted, labels)
+                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                    # Use rounded predictions in the loss calculation
+                    loss = criterion(outputs.squeeze(), labels.float())  # Use predicted instead of outputs
+                    val_loss += loss.item()
+                    val_accuracy += accuracy(predicted, labels)
+                except ValueError as e:
+                    print(f'Error occurred in validation epoch {epoch + 1}: {e}')
+                    continue
 
         # Adjust learning rate
         scheduler.step()
