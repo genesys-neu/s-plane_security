@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 
 
 def map_categories(df, columns):
@@ -23,7 +24,7 @@ def map_categories(df, columns):
     return df, mapping
 
 
-def label_data(df, t_type, mapping):
+def label_data(df, t_type, mapping, attacker):
     if t_type == 'Benign':
         df['Label'] = 0
     elif t_type == 'Announce':
@@ -91,7 +92,7 @@ def load_data(input_file, attack_type):
     # column_types = df.dtypes
     # print(df.iloc[55:75])
     # print(column_types)
-    label_data(df, attack_type, mapping)
+    label_data(df, attack_type, mapping, attacker)
     # From float to Integers
     df['Label']= df['Label'].astype(int)
     return df
@@ -117,27 +118,38 @@ if __name__ == "__main__":
     output_file = args.output
     attacker = args.attacker
 
-    # Recursively iterate over all files and subdirectories
-    for root, _, files in os.walk(directory):
-        for file in files:
-            # Check if the file is a .csv file
-            if file.endswith(".csv"):
-                # Construct the full path to the .csv file
-                file_path = os.path.join(root, file)
-                # print(root)
-                if 'BenignTraffic' in root:
-                    init_df = load_data(file_path, 'Benign')
-                    # print(init_df)
-                    dfs.append(init_df)
-                else:
-                    # Extract the section after the last directory
-                    section = os.path.basename(os.path.dirname(root))
+    # Define a list to store tuples of futures and file paths
+    future_file_pairs = []
+
+    # Define a ThreadPoolExecutor with a maximum of 10 threads
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        # Recursively iterate over all files and subdirectories
+        for root, _, files in os.walk(directory):
+            for file in files:
+                # Check if the file is a .csv file
+                if file.endswith(".csv"):
+                    # Construct the full path to the .csv file
+                    file_path = os.path.join(root, file)
                     # print(root)
-                    # print(section)
-                    # Read the .csv file into a DataFrame and label it
-                    init_df = load_data(file_path, section)
-                    # print(init_df)
-                    dfs.append(init_df)
+                    if 'BenignTraffic' in root:
+                        # Submit the file loading task to the executor
+                        future = executor.submit(load_data, file_path, 'Benign')
+                        # Append the Future object to the list
+                        future_file_pairs.append((future, file_path))
+                    else:
+                        # Extract the section after the last directory
+                        section = os.path.basename(os.path.dirname(root))
+                        # print(root)
+                        # print(section)
+                        # Read the .csv file into a DataFrame and label it
+                        future = executor.submit(load_data, file_path, section)
+                        # print(init_df)
+                        future_file_pairs.append((future, file_path))
+
+        # Collect the results from all submitted tasks
+        for future, file_path in future_file_pairs:
+            df = future.result()
+            dfs.append(df)
 
     # Concatenate the list of DataFrames into a single DataFrame
     final_df = pd.concat(dfs, ignore_index=True)
