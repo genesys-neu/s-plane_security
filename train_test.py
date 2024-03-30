@@ -209,12 +209,12 @@ if __name__ == "__main__":
                 # Round the predictions to 0 or 1
                 predicted = torch.round(outputs)
                 # Adjust shapes for the last batch
-                if inputs.shape[0] < batch_size:
-                    outputs = outputs.flatten()  # Flatten the output tensor
-                    labels = labels.float().view(-1)  # Flatten the label tensor
+
+                outputs = outputs.flatten()  # Flatten the output tensor
+                labels = labels.float().view(-1)  # Flatten the label tensor
 
                 # Use raw probabilities in the loss calculation
-                loss = criterion(outputs.squeeze(), labels.float())
+                loss = criterion(outputs, labels.float())
                 # Use rounded predictions in the loss calculation
                 # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
                 loss.backward()
@@ -239,15 +239,14 @@ if __name__ == "__main__":
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     # Adjust shapes for the last batch
-                    if inputs.shape[0] < batch_size:
-                        print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
-                        outputs = outputs.flatten()  # Flatten the output tensor
-                        labels = labels.float().view(-1)  # Flatten the label tensor
-                        print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+
+                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                    outputs = outputs.flatten()  # Flatten the output tensor
+                    labels = labels.float().view(-1)  # Flatten the label tensor
+                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
 
                     # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
-                    # Use rounded predictions in the loss calculation
-                    loss = criterion(outputs.squeeze(), labels.float())  # Use predicted instead of outputs
+                    loss = criterion(outputs, labels.float())
                     val_loss += loss.item()
                     val_accuracy += accuracy(predicted, labels)
                 except ValueError as e:
@@ -287,11 +286,6 @@ if __name__ == "__main__":
     model.eval()  # Set model to evaluation mode
     batch_size = 25
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-    # Modify labels if any label in the batch is 1
-    for inputs, labels in test_loader:
-        if 1 in labels:
-            labels[:] = 1  # Modify all labels in the batch to be 1
 
     test_predictions = []
     test_targets = []

@@ -225,12 +225,12 @@ if __name__ == "__main__":
                 # Round the predictions to 0 or 1
                 predicted = torch.round(outputs)
                 # Adjust shapes for the last batch
-                if inputs.shape[0] < batch_size:
-                    outputs = outputs.flatten()  # Flatten the output tensor
-                    labels = labels.float().view(-1)  # Flatten the label tensor
+
+                outputs = outputs.flatten()  # Flatten the output tensor
+                labels = labels.float().view(-1)  # Flatten the label tensor
 
                 # Use raw probabilities in the loss calculation
-                loss = criterion(outputs.squeeze(), new_label.float())
+                loss = criterion(outputs, new_label.float())
 
                 loss.backward()
                 optimizer.step()
@@ -260,13 +260,13 @@ if __name__ == "__main__":
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     # Adjust shapes for the last batch
-                    if inputs.shape[0] < batch_size:
-                        outputs = outputs.flatten()  # Flatten the output tensor
-                        labels = labels.float().view(-1)  # Flatten the label tensor
+
+                    outputs = outputs.flatten()  # Flatten the output tensor
+                    labels = labels.float().view(-1)  # Flatten the label tensor
 
                     # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
                     # Use rounded predictions in the loss calculation
-                    loss = criterion(outputs.squeeze(), new_label.float())  # Use predicted instead of outputs
+                    loss = criterion(outputs, new_label.float())  # Use predicted instead of outputs
                     val_loss += loss.item()
                     val_accuracy += accuracy(predicted, new_label)
                 except ValueError as e:
@@ -307,21 +307,20 @@ if __name__ == "__main__":
     batch_size = 25
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    # Modify labels if any label in the batch is 1
-    for inputs, labels in test_loader:
-        if 1 in labels:
-            labels[:] = 1  # Modify all labels in the batch to be 1
-
     test_predictions = []
     test_targets = []
 
     with torch.no_grad():  # Disable gradient calculation during testing
         for inputs, labels in test_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
+            if 1 in labels:
+                new_label = 1  # Modify all labels in the batch to be 1
+            else:
+                new_label = 0
+            inputs, new_label = inputs.to(device), new_label.to(device)
             outputs = model(inputs)
             predicted = torch.round(outputs)  # Round the predictions to 0 or 1
             test_predictions.extend(predicted.cpu().numpy())
-            test_targets.extend(labels.cpu().numpy())
+            test_targets.extend(new_label.cpu().numpy())
 
     # Generate confusion matrix
     conf_matrix = confusion_matrix(test_targets, test_predictions)
