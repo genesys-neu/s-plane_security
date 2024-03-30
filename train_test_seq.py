@@ -18,7 +18,7 @@ np.random.seed(17)
 class LSTMClassifier(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super(LSTMClassifier, self).__init__()
-
+        self.hidden_dim = hidden_dim  # Define hidden_dim as an attribute
         # Define the LSTM layer with batch_first=True
         self.lstm = nn.LSTM(input_dim, hidden_dim, batch_first=True)
 
@@ -26,16 +26,20 @@ class LSTMClassifier(nn.Module):
         self.fc = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
-        # Compute the sequence length (number of rows)
-        seq_length = x.size(1)
+        # Print the shape of the input tensor
+        # print("Input shape:", x.shape)
+
+        # Reshape input tensor to include batch size dimension
+        x = x.unsqueeze(0)  # Add dummy dimension for batch size
+        # print("Reshaped input shape:", x.shape)
 
         # Initialize hidden state with zeros
-        h0 = torch.zeros(1, x.size(0), self.hidden_dim).to(x.device)
-        # Initialize cell state with zeros
-        c0 = torch.zeros(1, x.size(0), self.hidden_dim).to(x.device)
+        h0 = torch.zeros(1, 1, self.hidden_dim).to(x.device)
+        c0 = torch.zeros(1, 1, self.hidden_dim).to(x.device)
 
         # Forward propagate LSTM
         lstm_out, _ = self.lstm(x, (h0, c0))
+        # print("LSTM output shape:", lstm_out.shape)
 
         # Only take the output from the final time step
         lstm_out = lstm_out[:, -1, :]
@@ -45,7 +49,7 @@ class LSTMClassifier(nn.Module):
 
         # Apply sigmoid activation function
         out = torch.sigmoid(out)
-
+        # print("Output shape:", out.shape)
         return out
 
 
@@ -209,25 +213,21 @@ if __name__ == "__main__":
         for inputs, labels in train_loader:
             optimizer.zero_grad()
             # Modify labels if any label in the batch is 1
-            if 1 in labels:
-                new_label = 1  # Modify all labels in the batch to be 1
-            else:
-                new_label = 0
+            new_label = torch.tensor(1 if 1 in labels else 0, dtype=torch.float).to(device)
 
             try:
-                # Move inputs and labels to the GPU
-                # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
-                inputs, new_label = inputs.to(device), new_label.to(device)
+                # Move inputs to the GPU
+                inputs = inputs.to(device)
+
                 # Forward pass
                 outputs = model(inputs)
-                # print(f'Outputs: {outputs}')
-
+                # print(f'Outputs: {outputs}, Label: {new_label}')
                 # Round the predictions to 0 or 1
                 predicted = torch.round(outputs)
-                # Adjust shapes for the last batch
 
-                outputs = outputs.flatten()  # Flatten the output tensor
-                labels = labels.float().view(-1)  # Flatten the label tensor
+                # Repeat the scalar label to match the shape of the model output tensor
+                new_label = new_label.expand_as(outputs)
+                # print(f'Outputs: {outputs.shape}, New Label: {new_label.shape}')
 
                 # Use raw probabilities in the loss calculation
                 loss = criterion(outputs, new_label.float())
@@ -237,38 +237,41 @@ if __name__ == "__main__":
 
                 running_loss += loss.item()
                 running_accuracy += accuracy(predicted, new_label)
+
             except ValueError as e:
-                print(f'Error occurred in training epoch {epoch +1}: {e}')
+                print(f'Error occurred in training epoch {epoch + 1}: {e}')
                 continue
 
         # Validation phase
         model.eval()  # Set model to evaluation mode
         val_loss = 0.0
         val_accuracy = 0.0
-        with torch.no_grad():  # Disable gradient calculation during validation
-            for inputs, labels in val_loader:
-                # Modify labels if any label in the batch is 1
-                if 1 in labels:
-                    new_label = 1  # Modify all labels in the batch to be 1
-                else:
-                    new_label = 0
+        # iterate over the validation data loader
+        for inputs, labels in val_loader:
+            # Move inputs to the GPU
+            inputs = inputs.to(device)
 
+            # Modify labels if any label in the batch is 1
+            new_label = torch.tensor(1 if 1 in labels else 0, dtype=torch.float).to(device)
+
+            with torch.no_grad():  # Disable gradient calculation during validation
                 try:
-                    inputs, new_label = inputs.to(device), new_label.to(device)
+                    # Forward pass
                     outputs = model(inputs)
-
+                    # print(f'Validation Outputs: {outputs}, Label: {new_label}')
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
-                    # Adjust shapes for the last batch
 
-                    outputs = outputs.flatten()  # Flatten the output tensor
-                    labels = labels.float().view(-1)  # Flatten the label tensor
+                    # Repeat the scalar label to match the shape of the model output tensor
+                    new_label = new_label.expand_as(outputs)
+                    # print(f'Validation Outputs: {outputs.shape}, New Label: {new_label.shape}')
 
-                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
-                    # Use rounded predictions in the loss calculation
-                    loss = criterion(outputs, new_label.float())  # Use predicted instead of outputs
+                    # Use raw probabilities in the loss calculation
+                    loss = criterion(outputs, new_label.float())
+
                     val_loss += loss.item()
                     val_accuracy += accuracy(predicted, new_label)
+
                 except ValueError as e:
                     print(f'Error occurred in validation epoch {epoch + 1}: {e}')
                     continue
@@ -312,11 +315,10 @@ if __name__ == "__main__":
 
     with torch.no_grad():  # Disable gradient calculation during testing
         for inputs, labels in test_loader:
-            if 1 in labels:
-                new_label = 1  # Modify all labels in the batch to be 1
-            else:
-                new_label = 0
-            inputs, new_label = inputs.to(device), new_label.to(device)
+            # Modify labels if any label in the batch is 1
+            new_label = torch.tensor(1 if 1 in labels else 0, dtype=torch.float).to(device)
+
+            inputs = inputs.to(device)
             outputs = model(inputs)
             predicted = torch.round(outputs)  # Round the predictions to 0 or 1
             test_predictions.extend(predicted.cpu().numpy())
