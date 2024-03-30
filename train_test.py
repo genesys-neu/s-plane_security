@@ -211,7 +211,7 @@ if __name__ == "__main__":
                 # Adjust shapes for the last batch
                 if inputs.shape[0] < batch_size:
                     outputs = outputs.flatten()  # Flatten the output tensor
-                    labels = labels.float().flatten()  # Flatten the label tensor
+                    labels = labels.float().view(-1)  # Flatten the label tensor
 
                 # Use raw probabilities in the loss calculation
                 loss = criterion(outputs.squeeze(), labels.float())
@@ -240,8 +240,10 @@ if __name__ == "__main__":
                     predicted = torch.round(outputs)
                     # Adjust shapes for the last batch
                     if inputs.shape[0] < batch_size:
+                        print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
                         outputs = outputs.flatten()  # Flatten the output tensor
-                        labels = labels.float().flatten()  # Flatten the label tensor
+                        labels = labels.float().view(-1)  # Flatten the label tensor
+                        print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
 
                     # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
                     # Use rounded predictions in the loss calculation
@@ -283,7 +285,7 @@ if __name__ == "__main__":
 
     # Test phase
     model.eval()  # Set model to evaluation mode
-    batch_size = 20
+    batch_size = 25
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # Modify labels if any label in the batch is 1

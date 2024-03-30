@@ -9,6 +9,7 @@ import torch.optim as optim
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 
 
 np.random.seed(17)
@@ -155,13 +156,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
-    parser.add_argument("-b", "--batch_size", type=int, default=32,
-                        help="batch size for training and validation")
+
     args = parser.parse_args()
 
     input_file = args.file_input
-    batch_size = args.batch_size
     chunk_size = 100
+    training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
+                        'validation_accuracy': [], 'confusion_matrix': []}
 
     train_data, validate_data, test_data, train_label, validate_label, test_label = load_data(input_file, chunk_size)
 
@@ -176,7 +177,7 @@ if __name__ == "__main__":
     hidden_size = 64
     num_layers = 2
     output_size = 1
-    num_epochs = 100
+    num_epochs = 200
 
     # Instantiate the model and move it to the GPU
     model = LSTMClassifier(input_size, hidden_size).to(device)
@@ -191,6 +192,8 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     best_val_loss = float('inf')  # Initialize the best validation loss
+    patience = 10  # Number of epochs to wait for improvement
+    counter = 0  # Counter for patience
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
@@ -205,32 +208,38 @@ if __name__ == "__main__":
         running_accuracy = 0.0
         for inputs, labels in train_loader:
             optimizer.zero_grad()
-
             # Modify labels if any label in the batch is 1
             if 1 in labels:
                 new_label = 1  # Modify all labels in the batch to be 1
             else:
                 new_label = 0
 
-            # Move inputs and labels to the GPU
-            # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
-            inputs, new_label = inputs.to(device), new_label.to(device)
-            # Forward pass
-            outputs = model(inputs)
-            # print(f'Outputs: {outputs}')
+            try:
+                # Move inputs and labels to the GPU
+                # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
+                inputs, new_label = inputs.to(device), new_label.to(device)
+                # Forward pass
+                outputs = model(inputs)
+                # print(f'Outputs: {outputs}')
 
-            # Round the predictions to 0 or 1
-            predicted = torch.round(outputs)
+                # Round the predictions to 0 or 1
+                predicted = torch.round(outputs)
+                # Adjust shapes for the last batch
+                if inputs.shape[0] < batch_size:
+                    outputs = outputs.flatten()  # Flatten the output tensor
+                    labels = labels.float().view(-1)  # Flatten the label tensor
 
-            # Use raw probabilities in the loss calculation
-            loss = criterion(outputs.squeeze(), new_label.float())
-            # Use rounded predictions in the loss calculation
-            # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
-            loss.backward()
-            optimizer.step()
+                # Use raw probabilities in the loss calculation
+                loss = criterion(outputs.squeeze(), new_label.float())
 
-            running_loss += loss.item()
-            running_accuracy += accuracy(predicted, new_label)
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+                running_accuracy += accuracy(predicted, new_label)
+            except ValueError as e:
+                print(f'Error occurred in training epoch {epoch +1}: {e}')
+                continue
 
         # Validation phase
         model.eval()  # Set model to evaluation mode
@@ -238,23 +247,31 @@ if __name__ == "__main__":
         val_accuracy = 0.0
         with torch.no_grad():  # Disable gradient calculation during validation
             for inputs, labels in val_loader:
-
                 # Modify labels if any label in the batch is 1
                 if 1 in labels:
                     new_label = 1  # Modify all labels in the batch to be 1
                 else:
                     new_label = 0
 
-                inputs, new_label = inputs.to(device), new_label.to(device)
-                outputs = model(inputs)
+                try:
+                    inputs, new_label = inputs.to(device), new_label.to(device)
+                    outputs = model(inputs)
 
-                # Round the predictions to 0 or 1
-                predicted = torch.round(outputs)
+                    # Round the predictions to 0 or 1
+                    predicted = torch.round(outputs)
+                    # Adjust shapes for the last batch
+                    if inputs.shape[0] < batch_size:
+                        outputs = outputs.flatten()  # Flatten the output tensor
+                        labels = labels.float().view(-1)  # Flatten the label tensor
 
-                # Use rounded predictions in the loss calculation
-                loss = criterion(outputs.squeeze(), new_label.float())  # Use predicted instead of outputs
-                val_loss += loss.item()
-                val_accuracy += accuracy(predicted, new_label)
+                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                    # Use rounded predictions in the loss calculation
+                    loss = criterion(outputs.squeeze(), new_label.float())  # Use predicted instead of outputs
+                    val_loss += loss.item()
+                    val_accuracy += accuracy(predicted, new_label)
+                except ValueError as e:
+                    print(f'Error occurred in validation epoch {epoch + 1}: {e}')
+                    continue
 
         # Adjust learning rate
         scheduler.step()
@@ -265,15 +282,29 @@ if __name__ == "__main__":
               f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
               f'Validation Loss: {val_loss / len(val_loader):.4f}, '
               f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
+        training_metrics['epochs'].append(epoch + 1)
+        training_metrics['training_loss'].append(running_loss / len(train_loader))
+        training_metrics['training_accuracy'].append(running_accuracy / len(train_loader))
+        training_metrics['validation_loss'].append(val_loss / len(val_loader))
+        training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model.pth')
+            torch.save(model.state_dict(), 'best_model_seq.pth')
+            counter = 0  # Reset counter if there's improvement
+        else:
+            # Increment counter if there's no improvement
+            counter += 1
+
+        # Check early stopping condition
+        if counter >= patience:
+            print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
+            break
 
     # Test phase
     model.eval()  # Set model to evaluation mode
-    batch_size = 20
+    batch_size = 25
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # Modify labels if any label in the batch is 1
@@ -296,6 +327,13 @@ if __name__ == "__main__":
     conf_matrix = confusion_matrix(test_targets, test_predictions)
     print("Confusion Matrix:")
     print(conf_matrix)
+    # Convert confusion matrix from NumPy array to list
+    conf_matrix_list = conf_matrix.tolist()
+    training_metrics['confusion_matrix'].append(conf_matrix_list)
+
+    # Save the dictionary to a JSON file
+    with open('training_log_seq.json', 'w') as jsonfile:
+        json.dump(training_metrics, jsonfile)
 
     # Plot confusion matrix
     '''
