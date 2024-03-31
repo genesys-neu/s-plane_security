@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, Dataset
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import torch.optim as optim
+from torch.optim.lr_scheduler import CyclicLR
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -160,10 +161,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
+    parser.add_argument("-t", "--trial_version", default='',
+                        help="add identifer for this trial")
 
     args = parser.parse_args()
-
     input_file = args.file_input
+    t_v = args.trial_version
+
     chunk_size = 100
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
                         'validation_accuracy': [], 'confusion_matrix': []}
@@ -193,16 +197,17 @@ if __name__ == "__main__":
 
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    scheduler = CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=2000, mode='triangular')
 
     best_val_loss = float('inf')  # Initialize the best validation loss
-    patience = 10  # Number of epochs to wait for improvement
+    patience = 20  # Number of epochs to wait for improvement
     counter = 0  # Counter for patience
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
         # Randomly select batch size between 10 and 40
-        batch_size = np.random.randint(10, 41)
+        batch_size = np.random.randint(10, 31)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
@@ -292,9 +297,9 @@ if __name__ == "__main__":
         training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
-        if val_loss < best_val_loss:
+        if val_loss < best_val_loss and epoch >= 5:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model_seq.pth')
+            torch.save(model.state_dict(), f'best_model_seq_{t_v}.pth')
             counter = 0  # Reset counter if there's improvement
         else:
             # Increment counter if there's no improvement
@@ -317,12 +322,14 @@ if __name__ == "__main__":
         for inputs, labels in test_loader:
             # Modify labels if any label in the batch is 1
             new_label = torch.tensor(1 if 1 in labels else 0, dtype=torch.float).to(device)
-
+            print(f'inputs: {inputs}, new label: {new_label}')
             inputs = inputs.to(device)
             outputs = model(inputs)
             predicted = torch.round(outputs)  # Round the predictions to 0 or 1
-            test_predictions.extend(predicted.cpu().numpy())
-            test_targets.extend(new_label.cpu().numpy())
+            print(f'predicted: {predicted}')
+            test_predictions.append(predicted.cpu().numpy())
+            print(f'test_predictions: {test_predictions}')
+            test_targets.append(new_label.cpu().numpy())
 
     # Generate confusion matrix
     conf_matrix = confusion_matrix(test_targets, test_predictions)
@@ -333,7 +340,7 @@ if __name__ == "__main__":
     training_metrics['confusion_matrix'].append(conf_matrix_list)
 
     # Save the dictionary to a JSON file
-    with open('training_log_seq.json', 'w') as jsonfile:
+    with open(f'training_log_seq_{t_v}.json', 'w') as jsonfile:
         json.dump(training_metrics, jsonfile)
 
     # Plot confusion matrix

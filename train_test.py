@@ -53,7 +53,7 @@ class PTPDataset(Dataset):
 
 
 class WeightedBCELoss(nn.Module):
-    def __init__(self, weight_fp=1, weight_fn=2):
+    def __init__(self, weight_fp=1, weight_fn=3):
         super(WeightedBCELoss, self).__init__()
         self.weight_fp = weight_fp
         self.weight_fn = weight_fn
@@ -145,10 +145,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
+    parser.add_argument("-t", "--trial_version", default='',
+                        help="add identifer for this trial")
 
     args = parser.parse_args()
-
     input_file = args.file_input
+    t_v = args.trial_version
     chunk_size = 100
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
                         'validation_accuracy': [], 'confusion_matrix': []}
@@ -181,12 +183,14 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     best_val_loss = float('inf')  # Initialize the best validation loss
-    patience = 10  # Number of epochs to wait for improvement
+    patience = 20  # Number of epochs to wait for improvement
     counter = 0  # Counter for patience
 
     # Training loop with evaluation on the validation set
     for epoch in range(num_epochs):
         # Randomly select batch size between 10 and 40
+        # reset the random seed?
+        # np.random.seed()
         batch_size = np.random.randint(10, 41)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -269,9 +273,9 @@ if __name__ == "__main__":
         training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
-        if val_loss < best_val_loss:
+        if val_loss < best_val_loss and epoch >= 5:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model.pth')
+            torch.save(model.state_dict(), f'best_model{t_v}.pth')
             counter = 0  # Reset counter if there's improvement
         else:
             # Increment counter if there's no improvement
@@ -307,7 +311,7 @@ if __name__ == "__main__":
     training_metrics['confusion_matrix'].append(conf_matrix_list)
 
     # Save the dictionary to a JSON file
-    with open('training_log.json', 'w') as jsonfile:
+    with open(f'training_log_{t_v}.json', 'w') as jsonfile:
         json.dump(training_metrics, jsonfile)
 
     # Plot confusion matrix
