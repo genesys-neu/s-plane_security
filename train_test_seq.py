@@ -150,8 +150,7 @@ def load_data(file, sequence):
 # Define additional metrics (e.g., accuracy)
 def accuracy(output, target):
     # Calculate accuracy
-    _, predicted = torch.max(output, 1)
-    correct = (predicted == target).sum().item()
+    correct = (output == target).sum().item()
     total = target.size(0)
     return correct / total
 
