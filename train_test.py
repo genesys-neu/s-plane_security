@@ -53,7 +53,7 @@ class PTPDataset(Dataset):
 
 
 class WeightedBCELoss(nn.Module):
-    def __init__(self, weight_fp=1, weight_fn=3):
+    def __init__(self, weight_fp=1, weight_fn=1):
         super(WeightedBCELoss, self).__init__()
         self.weight_fp = weight_fp
         self.weight_fn = weight_fn
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # Define the loss function (Binary Cross-Entropy Loss)
     # criterion = nn.BCELoss()
     # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
-    criterion = WeightedBCELoss(weight_fp=1, weight_fn=2)
+    criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
 
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -211,6 +211,7 @@ if __name__ == "__main__":
 
                 # Round the predictions to 0 or 1
                 predicted = torch.round(outputs)
+                predicted = predicted.flatten()
                 # Adjust shapes for the last batch
 
                 outputs = outputs.flatten()  # Flatten the output tensor
@@ -241,7 +242,7 @@ if __name__ == "__main__":
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
-                    # Adjust shapes for the last batch
+                    predicted = predicted.flatten()
 
                     # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
                     outputs = outputs.flatten()  # Flatten the output tensor
@@ -272,7 +273,7 @@ if __name__ == "__main__":
         training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
-        if val_loss < best_val_loss and epoch >= 5:
+        if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), f'best_model{t_v}.pth')
             counter = 0  # Reset counter if there's improvement
