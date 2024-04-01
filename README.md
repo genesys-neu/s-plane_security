@@ -82,4 +82,4 @@ You can customize the script by adjusting various parameters such as input size,
 ```
 python3 train_test.py -t 1.1
 ```
-This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
+This command uses data from `final_dataset.csv` trains model version 1.1 and saves a training log in .json format as well as the best model weights.
