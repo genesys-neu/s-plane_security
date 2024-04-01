@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # Define the loss function (Binary Cross-Entropy Loss)
     # criterion = nn.BCELoss()
     # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
-    criterion = WeightedBCELoss(weight_fp=1, weight_fn=5)
+    criterion = WeightedBCELoss(weight_fp=1, weight_fn=8)
 
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -273,8 +273,8 @@ if __name__ == "__main__":
         training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        if (val_accuracy / len(val_loader)) < best_val_loss:
+            best_val_loss = (val_accuracy / len(val_loader))
             torch.save(model.state_dict(), f'best_model{t_v}.pth')
             counter = 0  # Reset counter if there's improvement
         else:
