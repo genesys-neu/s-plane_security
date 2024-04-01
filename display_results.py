@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import argparse
+import numpy as np
 
 
 np.random.seed(17)
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_dir = args.directory
     input_file = args.file_input
+    chunk_size = 100
 
     # Load the data
     _, _, test_data, _, _, test_label = load_data(input_file, chunk_size)
@@ -34,24 +36,25 @@ if __name__ == "__main__":
     num_layers = 2
     output_size = 1
 
-    # Instantiate the model and move it to the GPU
-    model = LSTMClassifier(input_size, hidden_size).to(device)
-
     # List to store models and their corresponding confusion matrices
     model_list = []
-    confusion_matrices = []
 
     for root, _, files in os.walk(model_dir):
-        for file in files:
-            # Check if the file is a .csv file
-            if file.endswith(".pth"):
-                model = LSTMClassifier(input_size, hidden_size).to(device)
-                # Load the model weights
-                model.load_state_dict(torch.load(os.path.join(root, file)))
-                # Add the model to the list
-                model_list.append(model)
+        for model_file in files:
+            # Check if the file is a .pth file
+            if model_file.endswith(".pth"):
+                # Extract model name from the file name
+                model_name = os.path.splitext(model_file)[0]
+                model_path = os.path.join(root, model_file)
 
-    for model in model_list:
+                # Load the model weights
+                model = LSTMClassifier(input_size, hidden_size).to(device)
+                model.load_state_dict(torch.load(model_path))
+
+                # Add the model and its name to the list as a tuple
+                model_list.append((model, model_name))
+
+    for model, model_name in model_list:
         # Set the model to evaluation mode
         model.eval()
         # Create a DataLoader for the test data
@@ -71,18 +74,18 @@ if __name__ == "__main__":
                 test_targets.extend(labels.cpu().numpy())
         # Generate the confusion matrix
         conf_matrix = confusion_matrix(test_targets, test_predictions)
+        # Normalize the confusion matrix to display percentages
+        conf_matrix_normalized = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
         # Print the confusion matrix
         print("Confusion Matrix:")
-        print(conf_matrix)
-        # Append the confusion matrix to the list
-        confusion_matrices.append(conf_matrix)
+        print(conf_matrix_normalized)
 
-    # Plot confusion matrices
-    for i, conf_matrix in enumerate(confusion_matrices):
+        # Plot the confusion matrix
         plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2f', cmap='Blues', cbar=False)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
-        plt.title(f'Confusion Matrix - Model {i + 1}')
-        plt.show()
-
+        plt.title(f'Confusion Matrix - Model {model_name}')
+        # Save the confusion matrix plot as a .png file
+        plt.savefig(f"{model_name}_confusion_matrix.png")
+        plt.close()
