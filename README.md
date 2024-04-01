@@ -42,3 +42,41 @@ This Python script preprocesses a dataset comprising multiple CSV files containi
 python dataset_preprocessing.py -d ./DataCollectionPTP/DU -o final_dataset.csv
 ```
 This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
+
+
+## LSTM Classifier for Time-Series Data
+
+This script implements an LSTM-based classifier for time-series data. It includes functionalities for training the model, evaluating its performance, and generating confusion matrices. The main features of the script include:
+
+- **Data Loading and Preprocessing:** The script can load time-series data from a CSV file, split it into training, validation, and testing sets, and prepare it for training.
+  
+- **Model Training:** It trains an LSTM classifier using the training data. The script supports customization of various model parameters such as input dimension, hidden dimension, and number of epochs.
+  
+- **Model Evaluation:** After training, the script evaluates the trained model's performance on the validation and testing sets. It calculates metrics such as loss and accuracy and generates confusion matrices.
+  
+- **Confusion Matrix Visualization:** The script uses seaborn and matplotlib to visualize confusion matrices, providing insights into the model's performance in classifying different classes.
+
+### Requirements
+
+- Python 3
+- PyTorch
+- pandas
+- NumPy
+- scikit-learn
+- seaborn
+- matplotlib
+
+### Usage
+
+To use the script, follow these steps:
+
+1. Clone the repository to your local machine.
+2. Install the required dependencies listed in the `requirements.txt` file.
+3. Place your time-series data in a CSV file named `final_dataset.csv`.
+4. Run the script using the command `python lstm_classifier.py`.
+
+### Customization
+
+You can customize the script by adjusting various parameters such as input size, hidden size, number of layers, and optimization parameters directly in the script or through command-line arguments.
+
+

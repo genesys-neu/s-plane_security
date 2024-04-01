@@ -46,6 +46,13 @@ if __name__ == "__main__":
                 # Extract model name from the file name
                 model_name = os.path.splitext(model_file)[0]
                 model_path = os.path.join(root, model_file)
+                # Define the path for saving the confusion matrix plot
+                conf_matrix_plot_path = f"{model_name}_confusion_matrix.png"
+
+                # Check if the confusion matrix plot already exists
+                if os.path.exists(conf_matrix_plot_path):
+                    print(f"Confusion matrix plot already exists for model: {model_name}. Skipping...")
+                    continue
 
                 # Load the model weights
                 model = LSTMClassifier(input_size, hidden_size).to(device)
