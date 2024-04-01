@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # Define the loss function (Binary Cross-Entropy Loss)
     # criterion = nn.BCELoss()
     # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
-    criterion = WeightedBCELoss(weight_fp=1, weight_fn=8)
+    criterion = WeightedBCELoss(weight_fp=1, weight_fn=9)
 
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
