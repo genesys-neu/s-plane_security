@@ -22,7 +22,7 @@ This Python script preprocesses a dataset comprising multiple CSV files containi
    - Navigate to the directory containing the script (`dataset_preprocessing.py`).
    - Run the script with the following command:
      ```
-     python dataset_preprocessing.py [-d <dataset_directory>] [-o <output_filename>] [-a <attacker_mac_address>]
+     python3 dataset_preprocessing.py [-d <dataset_directory>] [-o <output_filename>] [-a <attacker_mac_address>]
      ```
      All arguments are optional.
      - Replace `<dataset_directory>` with the path to the directory containing the dataset files.
@@ -39,7 +39,7 @@ This Python script preprocesses a dataset comprising multiple CSV files containi
 
 ### Example
 ```
-python dataset_preprocessing.py -d ./DataCollectionPTP/DU -o final_dataset.csv
+python3 dataset_preprocessing.py -d ./DataCollectionPTP/DU -o final_dataset.csv
 ```
 This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
 
@@ -72,7 +72,7 @@ To use the script, follow these steps:
 
 1. Install the required dependencies listed in above.
 2. Place your time-series data in a CSV file named `final_dataset.csv`.
-3. Run the script using the command `train_test.py [-f "file_input"] [-t "trial_version"]`.
+3. Run the script using the command `python3 train_test.py [-f <file_input>] [-t <trial_version>]`.
 
 ### Customization
 
@@ -80,6 +80,6 @@ You can customize the script by adjusting various parameters such as input size,
 
 ### Example
 ```
-python train_test.py -t 1.1
+python3 train_test.py -t 1.1
 ```
 This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
