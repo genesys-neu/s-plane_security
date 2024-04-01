@@ -44,7 +44,7 @@ python dataset_preprocessing.py -d ./DataCollectionPTP/DU -o final_dataset.csv
 This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
 
 
-## LSTM Classifier for Time-Series Data
+## Classifier for Time-Series Data (train_test.py)
 
 This script implements an LSTM-based classifier for time-series data. It includes functionalities for training the model, evaluating its performance, and generating confusion matrices. The main features of the script include:
 
@@ -70,13 +70,16 @@ This script implements an LSTM-based classifier for time-series data. It include
 
 To use the script, follow these steps:
 
-1. Clone the repository to your local machine.
-2. Install the required dependencies listed in the `requirements.txt` file.
-3. Place your time-series data in a CSV file named `final_dataset.csv`.
-4. Run the script using the command `python lstm_classifier.py`.
+1. Install the required dependencies listed in above.
+2. Place your time-series data in a CSV file named `final_dataset.csv`.
+3. Run the script using the command `train_test.py [-f "file_input"] [-t "trial_version"]`.
 
 ### Customization
 
 You can customize the script by adjusting various parameters such as input size, hidden size, number of layers, and optimization parameters directly in the script or through command-line arguments.
 
-
+### Example
+```
+python train_test.py -t 1.1
+```
+This command preprocesses all CSV files in the `DataCollectionPTP/DU` directory and generates a file named `final_dataset.csv` containing the cleaned and labeled dataset.
