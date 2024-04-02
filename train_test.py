@@ -11,6 +11,7 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
+import math
 
 
 np.random.seed(17)
@@ -44,9 +45,7 @@ class TransformerNN(nn.Module):
                  dropout: float = 0.2, use_pos: bool = False):
         super(TransformerNN, self).__init__()
         self.norm = nn.LayerNorm(num_feats)
-        # create the positional encoder
-        self.use_positional_enc = use_pos
-        self.pos_encoder = PositionalEncoding(num_feats + 1, dropout, max_len=5000)
+
         # define the encoder layers
         encoder_layers = TransformerEncoderLayer(num_feats, nhead, batch_first=True)
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
@@ -67,9 +66,6 @@ class TransformerNN(nn.Module):
             output classes log probabilities
         """
         # src = self.norm(src) should not be necessary since output can be already normalized
-        # apply positional encoding if decided
-        if self.use_positional_enc:
-            src = self.pos_encoder(src).squeeze()
         # pass through encoder layers
         t_out = self.transformer_encoder(src)
         # flatten already contextualized KPIs
@@ -81,50 +77,6 @@ class TransformerNN(nn.Module):
         output = self.classifier(pooler)
         output = torch.sigmoid(output)
         return output
-
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 50000, custom_enc=False):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        self.max_len = max_len
-        self.custom_enc = custom_enc
-
-        if not self.custom_enc:
-            position = torch.arange(max_len).unsqueeze(1)
-            div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-            pe = torch.zeros(max_len, d_model)
-            pe[:, 0::2] = torch.sin(position * div_term)
-            pe[:, 1::2] = torch.cos(position * div_term)
-            pe = pe[:, :-1]
-            pe = pe.unsqueeze(0)
-
-            self.register_buffer('pe', pe)
-        else:
-            self.pe = nn.Parameter(torch.randn(1, max_len, d_model-1))
-
-    def forward(self, x):
-        """
-        Args:
-            x: Tensor, shape [batch_size, seq_len, features]
-        """
-        if not self.custom_enc:
-            x = x + self.pe[:, :x.size(1)]
-
-        else:
-
-            rel_time_ix_info = x[:, :, 0]
-            x = x[:, :, 1:]
-            all_pe = torch.stack(
-                [self.pe[:, torch.clip(s, max=self.max_len-1).to(torch.long)]
-                    for s in torch.unbind(rel_time_ix_info, dim=0)]
-                , dim=0).squeeze()
-
-            if x.device.type == 'cuda':
-                all_pe = all_pe.to(x.device)
-            x = x + all_pe
-
-        return self.dropout(x)
 
 
 class PTPDataset(Dataset):
@@ -236,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
     parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
-    parser.add_argument("-s", "--slice_length", default=32, help="Slice length for the Transformer")
+    parser.add_argument("-s", "--slice_length", default=16, help="Slice length for the Transformer")
 
     args = parser.parse_args()
     input_file = args.file_input
