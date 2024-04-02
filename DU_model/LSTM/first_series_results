@@ -1,0 +1,13 @@
+First series of tests are not reliable:
+test 1 (weight_fp=1, weight_fn=1):
+Confusion Matrix:
+[[24271  3467]
+ [ 6687  5275]]
+ 
+test 2 (weight_fp=1, weight_fn=2):
+[[20563  7175]
+ [ 3772  8190]]
+ 
+ test 3 (weight_fp=1, weight_fn=3):
+ [[27697    41]
+ [ 8115  3847]]

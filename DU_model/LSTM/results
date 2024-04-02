@@ -1,0 +1,51 @@
+              Predicted Negative    Predicted Positive
+Actual Negative       TN                   FP
+Actual Positive       FN                   TP
+
+
+test 1 (weight_fp=1, weight_fn=1):
+[[25888  1850]
+ [ 8177  3785]]
+
+
+test 2 (weight_fp=1, weight_fn=2):
+[[23355  4383]
+ [ 5842  6120]]
+
+
+test 3 (weight_fp=1, weight_fn=3):
+[[21957  5781]
+ [ 4901  7061]]
+
+
+test 4 (weight_fp=1, weight_fn=4):
+[[22441  5297]
+ [ 5238  6724]]
+
+
+test 5 (weight_fp=1, weight_fn=5):
+[[22159  5579]
+ [ 5032  6930]]
+
+
+test 6 (weight_fp=1, weight_fn=6):
+[[20731  7007]
+ [ 3905  8057]]
+
+
+test 7 (weight_fp=1, weight_fn=7):
+[[24702  3036]
+ [ 6940  5022]]
+
+
+test 8 (weight_fp=1, weight_fn=8):
+[[24831  2907]
+ [ 7019  4943]]
+
+
+test 9 (weight_fp=1, weight_fn=9):
+[[22036  5702]
+ [ 4974  6988]]
+ 
+ 
+ 
