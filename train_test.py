@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import torch
 from torch import nn
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from torch.utils.data import DataLoader, Dataset
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -41,7 +42,7 @@ class LSTMClassifier(nn.Module):
 class TransformerNN(nn.Module):
     def __init__(self, classes: int = 1, num_feats: int = 6, slice_len: int = 32, nhead: int = 1, nlayers: int = 2,
                  dropout: float = 0.2, use_pos: bool = False):
-        super(TransformerNN_old, self).__init__()
+        super(TransformerNN, self).__init__()
         self.norm = nn.LayerNorm(num_feats)
         # create the positional encoder
         self.use_positional_enc = use_pos
@@ -92,11 +93,6 @@ class PositionalEncoding(nn.Module):
         if not self.custom_enc:
             position = torch.arange(max_len).unsqueeze(1)
             div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-            # ToDo: try the following change
-            # pe = torch.zeros(max_len, 1, d_model)
-            # pe[:, 0, 0::2] = torch.sin(position * div_term)
-            # pe[:, 0, 1::2] = torch.cos(position * div_term)
-            # try the following instead
             pe = torch.zeros(max_len, d_model)
             pe[:, 0::2] = torch.sin(position * div_term)
             pe[:, 1::2] = torch.cos(position * div_term)
@@ -104,13 +100,6 @@ class PositionalEncoding(nn.Module):
             pe = pe.unsqueeze(0)
 
             self.register_buffer('pe', pe)
-            """
-            import matplotlib.pyplot as plt
-            np_pe = np.array(pe[0])
-            plt.imshow(np_pe, aspect='auto')
-            plt.colorbar()
-            plt.show()
-            """
         else:
             self.pe = nn.Parameter(torch.randn(1, max_len, d_model-1))
 
@@ -126,13 +115,6 @@ class PositionalEncoding(nn.Module):
 
             rel_time_ix_info = x[:, :, 0]
             x = x[:, :, 1:]
-            """
-            # alternative method to compute this, but below should be faster
-            all_pe = torch.zeros((x.shape[0], x.shape[1], x.shape[2]))
-            for s in range(x.shape[0]): # iterate over sample in batch
-                s_timeinfo_ix = torch.clip(rel_time_ix_info[s], max=self.max_len-1).to(torch.long)
-                all_pe[s] = self.pe[:, s_timeinfo_ix]
-            """
             all_pe = torch.stack(
                 [self.pe[:, torch.clip(s, max=self.max_len-1).to(torch.long)]
                     for s in torch.unbind(rel_time_ix_info, dim=0)]
