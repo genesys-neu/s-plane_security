@@ -38,6 +38,113 @@ class LSTMClassifier(nn.Module):
         return out
 
 
+class TransformerNN(nn.Module):
+    def __init__(self, classes: int = 1, num_feats: int = 6, slice_len: int = 32, nhead: int = 1, nlayers: int = 2,
+                 dropout: float = 0.2, use_pos: bool = False):
+        super(TransformerNN_old, self).__init__()
+        self.norm = nn.LayerNorm(num_feats)
+        # create the positional encoder
+        self.use_positional_enc = use_pos
+        self.pos_encoder = PositionalEncoding(num_feats + 1, dropout, max_len=5000)
+        # define the encoder layers
+        encoder_layers = TransformerEncoderLayer(num_feats, nhead, batch_first=True)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.d_model = num_feats
+
+        # we will not use the decoder
+        # instead we will add a linear layer, another scaled dropout layer, and finally a classifier layer
+        self.pre_classifier = torch.nn.Linear(num_feats *slice_len, 256)
+        self.dropout = torch.nn.Dropout(dropout)
+        self.classifier = torch.nn.Linear(256, classes)
+        self.logSoftmax = nn.LogSoftmax(dim=1)
+
+    def forward(self, src):
+        """
+        Args:
+            src: Tensor, shape [batch_size, seq_len, features]
+        Returns:
+            output classes log probabilities
+        """
+        # src = self.norm(src) should not be necessary since output can be already normalized
+        # apply positional encoding if decided
+        if self.use_positional_enc:
+            src = self.pos_encoder(src).squeeze()
+        # pass through encoder layers
+        t_out = self.transformer_encoder(src)
+        # flatten already contextualized KPIs
+        t_out = torch.flatten(t_out, start_dim=1)
+        # Pass through MLP classifier
+        pooler = self.pre_classifier(t_out)
+        pooler = torch.nn.ReLU()(pooler)
+        pooler = self.dropout(pooler)
+        output = self.classifier(pooler)
+        output = self.logSoftmax(output)
+        return output
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 50000, custom_enc=False):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        self.max_len = max_len
+        self.custom_enc = custom_enc
+
+        if not self.custom_enc:
+            position = torch.arange(max_len).unsqueeze(1)
+            div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+            # ToDo: try the following change
+            # pe = torch.zeros(max_len, 1, d_model)
+            # pe[:, 0, 0::2] = torch.sin(position * div_term)
+            # pe[:, 0, 1::2] = torch.cos(position * div_term)
+            # try the following instead
+            pe = torch.zeros(max_len, d_model)
+            pe[:, 0::2] = torch.sin(position * div_term)
+            pe[:, 1::2] = torch.cos(position * div_term)
+            pe = pe[:, :-1]
+            pe = pe.unsqueeze(0)
+
+            self.register_buffer('pe', pe)
+            """
+            import matplotlib.pyplot as plt
+            np_pe = np.array(pe[0])
+            plt.imshow(np_pe, aspect='auto')
+            plt.colorbar()
+            plt.show()
+            """
+        else:
+            self.pe = nn.Parameter(torch.randn(1, max_len, d_model-1))
+
+    def forward(self, x):
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, features]
+        """
+        if not self.custom_enc:
+            x = x + self.pe[:, :x.size(1)]
+
+        else:
+
+            rel_time_ix_info = x[:, :, 0]
+            x = x[:, :, 1:]
+            """
+            # alternative method to compute this, but below should be faster
+            all_pe = torch.zeros((x.shape[0], x.shape[1], x.shape[2]))
+            for s in range(x.shape[0]): # iterate over sample in batch
+                s_timeinfo_ix = torch.clip(rel_time_ix_info[s], max=self.max_len-1).to(torch.long)
+                all_pe[s] = self.pe[:, s_timeinfo_ix]
+            """
+            all_pe = torch.stack(
+                [self.pe[:, torch.clip(s, max=self.max_len-1).to(torch.long)]
+                    for s in torch.unbind(rel_time_ix_info, dim=0)]
+                , dim=0).squeeze()
+
+            if x.device.type == 'cuda':
+                all_pe = all_pe.to(x.device)
+            x = x + all_pe
+
+        return self.dropout(x)
+
+
 class PTPDataset(Dataset):
     def __init__(self, data, labels):
         self.data = data
@@ -146,10 +253,14 @@ if __name__ == "__main__":
                         help="file containing all the training data")
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
+    parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
+    parser.add_argument("-s", "--slice_length", default=32, help="Slice length for the Transformer")
 
     args = parser.parse_args()
     input_file = args.file_input
     t_v = args.trial_version
+    model_type = args.model
+
     chunk_size = 100
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
                         'validation_accuracy': [], 'confusion_matrix': []}
@@ -164,13 +275,19 @@ if __name__ == "__main__":
 
     # Define model parameters
     input_size = train_data.shape[1]
-    hidden_size = 64
+    hidden_size = 64 # For LSTM
     num_layers = 2
     output_size = 1
     num_epochs = 200
+    slice_length = 32 # For Transformer
 
     # Instantiate the model and move it to the GPU
-    model = LSTMClassifier(input_size, hidden_size).to(device)
+    if model_type == 'LSTM':
+        print('Using LSTM')
+        model = LSTMClassifier(input_size, hidden_size).to(device)
+    else:
+        print('Using Transformer')
+        model = TransformerNN(slice_len=slice_length).to(device)
 
     # Define the loss function (Binary Cross-Entropy Loss)
     # criterion = nn.BCELoss()
