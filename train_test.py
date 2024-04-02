@@ -56,7 +56,7 @@ class TransformerNN(nn.Module):
         self.pre_classifier = torch.nn.Linear(num_feats *slice_len, 256)
         self.dropout = torch.nn.Dropout(dropout)
         self.classifier = torch.nn.Linear(256, classes)
-        self.logSoftmax = nn.LogSoftmax(dim=1)
+
 
     def forward(self, src):
         """
@@ -78,7 +78,7 @@ class TransformerNN(nn.Module):
         pooler = torch.nn.ReLU()(pooler)
         pooler = self.dropout(pooler)
         output = self.classifier(pooler)
-        output = self.logSoftmax(output)
+        output = torch.sigmoid(output)
         return output
 
 
@@ -275,11 +275,11 @@ if __name__ == "__main__":
 
     # Define model parameters
     input_size = train_data.shape[1]
-    hidden_size = 64 # For LSTM
+    hidden_size = 64  # For LSTM
     num_layers = 2
     output_size = 1
     num_epochs = 200
-    slice_length = 32 # For Transformer
+    slice_length = 32  # For Transformer
 
     # Instantiate the model and move it to the GPU
     if model_type == 'LSTM':
@@ -292,7 +292,7 @@ if __name__ == "__main__":
     # Define the loss function (Binary Cross-Entropy Loss)
     # criterion = nn.BCELoss()
     # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
-    criterion = WeightedBCELoss(weight_fp=1, weight_fn=9)
+    criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
 
     # Define optimizer (Adam) and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -307,7 +307,10 @@ if __name__ == "__main__":
         # Randomly select batch size between 10 and 40
         # reset the random seed?
         # np.random.seed()
-        batch_size = np.random.randint(10, 41)
+        if model_type == 'LSTM':
+            batch_size = np.random.randint(10, 41)
+        else:
+            batch_size = 100
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
@@ -322,6 +325,10 @@ if __name__ == "__main__":
                 # Move inputs and labels to the GPU
                 # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                 inputs, labels = inputs.to(device), labels.to(device)
+                if model_type == 'Transformer':
+                    # Compute sequence labels
+                    sequence_labels = labels.max(dim=1)[0]  # If any row's label is 1, sequence label is 1, otherwise 0
+
                 # Forward pass
                 outputs = model(inputs)
                 # print(f'Outputs: {outputs}')
@@ -332,17 +339,21 @@ if __name__ == "__main__":
                 # Adjust shapes for the last batch
 
                 outputs = outputs.flatten()  # Flatten the output tensor
-                labels = labels.float().view(-1)  # Flatten the label tensor
-
-                # Use raw probabilities in the loss calculation
-                loss = criterion(outputs, labels.float())
+                if model_type == 'LSTM':
+                    labels = labels.float().view(-1)  # Flatten the label tensor
+                    # Use raw probabilities in the loss calculation
+                    loss = criterion(outputs, labels.float())
+                    running_accuracy += accuracy(predicted, labels)
+                else:
+                    loss = criterion(outputs, sequence_labels.float())
+                    running_accuracy += accuracy(predicted, sequence_labels)
                 # Use rounded predictions in the loss calculation
                 # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
                 loss.backward()
                 optimizer.step()
 
                 running_loss += loss.item()
-                running_accuracy += accuracy(predicted, labels)
+
             except ValueError as e:
                 print(f'Error occurred in training epoch {epoch +1}: {e}')
                 continue
@@ -355,6 +366,11 @@ if __name__ == "__main__":
             for inputs, labels in val_loader:
                 try:
                     inputs, labels = inputs.to(device), labels.to(device)
+                    if model_type == 'Transformer':
+                        # Compute sequence labels
+                        sequence_labels = labels.max(dim=1)[0]
+                        # If any row's label is 1, sequence label is 1, otherwise 0
+
                     outputs = model(inputs)
 
                     # Round the predictions to 0 or 1
@@ -363,13 +379,17 @@ if __name__ == "__main__":
 
                     # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
                     outputs = outputs.flatten()  # Flatten the output tensor
-                    labels = labels.float().view(-1)  # Flatten the label tensor
-                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
-
-                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
-                    loss = criterion(outputs, labels.float())
+                    if model_type == 'LSTM':
+                        labels = labels.float().view(-1)  # Flatten the label tensor
+                        # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                        # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                        loss = criterion(outputs, labels.float())
+                        val_accuracy += accuracy(predicted, labels)
+                    else:
+                        loss = criterion(outputs, sequence_labels.float())
+                        val_accuracy += accuracy(predicted, sequence_labels)
                     val_loss += loss.item()
-                    val_accuracy += accuracy(predicted, labels)
+
                 except ValueError as e:
                     print(f'Error occurred in validation epoch {epoch + 1}: {e}')
                     continue
