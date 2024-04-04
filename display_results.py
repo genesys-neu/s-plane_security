@@ -69,7 +69,7 @@ if __name__ == "__main__":
                     slice_size = re.findall(r'\.(\d+)', model_name)
                     # print(f'Slice Size {slice_size}')
                     slice_length = int(slice_size[1])
-                    print(f'Using Transformer with slice size {slice_length}')
+                    # print(f'Using Transformer with slice size {slice_length}')
                     model = TransformerNN(slice_len=slice_length).to(device)
                 model.load_state_dict(torch.load(model_path))
 
