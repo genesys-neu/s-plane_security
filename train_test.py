@@ -41,7 +41,7 @@ class LSTMClassifier(nn.Module):
 
 
 class TransformerNN(nn.Module):
-    def __init__(self, classes: int = 1, num_feats: int = 6, slice_len: int = 32, nhead: int = 1, nlayers: int = 2,
+    def __init__(self, classes: int = 1, num_feats: int = 6, slice_len: int = 32, nhead: int = 2, nlayers: int = 2,
                  dropout: float = 0.2, use_pos: bool = False):
         super(TransformerNN, self).__init__()
         self.norm = nn.LayerNorm(num_feats)
@@ -53,7 +53,7 @@ class TransformerNN(nn.Module):
 
         # we will not use the decoder
         # instead we will add a linear layer, another scaled dropout layer, and finally a classifier layer
-        self.pre_classifier = torch.nn.Linear(num_feats *slice_len, 256)
+        self.pre_classifier = torch.nn.Linear(num_feats * slice_len, 256)
         self.dropout = torch.nn.Dropout(dropout)
         self.classifier = torch.nn.Linear(256, classes)
 
@@ -80,16 +80,21 @@ class TransformerNN(nn.Module):
 
 
 class PTPDataset(Dataset):
-    def __init__(self, data, labels):
+    def __init__(self, data, labels, sequence_length):
         self.data = data
         self.labels = labels
+        self.sequence_length = sequence_length
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) - self.sequence_length + 1
 
     def __getitem__(self, idx):
-        sample = torch.tensor(self.data.iloc[idx].values, dtype=torch.float32)
-        label = torch.tensor(self.labels.iloc[idx], dtype=torch.long)  # Assuming labels are integers
+        end_idx = idx + self.sequence_length
+        sample = torch.tensor(self.data.iloc[idx:end_idx].values, dtype=torch.float32)
+        # Convert labels from Pandas Series to NumPy array, then to tensor
+        label_tensor = torch.tensor(self.labels.iloc[idx:end_idx].values, dtype=torch.long)
+        # Determine label for the sequence
+        label = torch.tensor(1 if torch.any(label_tensor) else 0, dtype=torch.long)
         return sample, label
 
 
@@ -194,16 +199,17 @@ if __name__ == "__main__":
     input_file = args.file_input
     t_v = args.trial_version
     model_type = args.model
+    slice_length = args.slice_length
 
-    chunk_size = 100
+    chunk_size = 1000
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
                         'validation_accuracy': [], 'confusion_matrix': []}
 
     train_data, validate_data, test_data, train_label, validate_label, test_label = load_data(input_file, chunk_size)
 
-    train_dataset = PTPDataset(train_data, train_label)
-    val_dataset = PTPDataset(validate_data, validate_label)
-    test_dataset = PTPDataset(test_data, test_label)
+    train_dataset = PTPDataset(train_data, train_label, slice_length)
+    val_dataset = PTPDataset(validate_data, validate_label, slice_length)
+    test_dataset = PTPDataset(test_data, test_label, slice_length)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -212,15 +218,14 @@ if __name__ == "__main__":
     hidden_size = 64  # For LSTM
     num_layers = 2
     output_size = 1
-    num_epochs = 200
-    slice_length = 32  # For Transformer
+    num_epochs = 100
 
     # Instantiate the model and move it to the GPU
     if model_type == 'LSTM':
         print('Using LSTM')
         model = LSTMClassifier(input_size, hidden_size).to(device)
     else:
-        print('Using Transformer')
+        print(f'Using Transformer with slice size {slice_length}')
         model = TransformerNN(slice_len=slice_length).to(device)
 
     # Define the loss function (Binary Cross-Entropy Loss)
@@ -233,7 +238,7 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     best_val_loss = float('inf')  # Initialize the best validation loss
-    patience = 20  # Number of epochs to wait for improvement
+    patience = 10  # Number of epochs to wait for improvement
     counter = 0  # Counter for patience
 
     # Training loop with evaluation on the validation set
@@ -244,7 +249,7 @@ if __name__ == "__main__":
         if model_type == 'LSTM':
             batch_size = np.random.randint(10, 41)
         else:
-            batch_size = 100
+            batch_size = 1000
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
@@ -259,28 +264,24 @@ if __name__ == "__main__":
                 # Move inputs and labels to the GPU
                 # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                 inputs, labels = inputs.to(device), labels.to(device)
-                if model_type == 'Transformer':
-                    # Compute sequence labels
-                    sequence_labels = labels.max(dim=1)[0]  # If any row's label is 1, sequence label is 1, otherwise 0
-
                 # Forward pass
                 outputs = model(inputs)
+                # print(f'Output shape: {outputs.shape}')
                 # print(f'Outputs: {outputs}')
 
                 # Round the predictions to 0 or 1
                 predicted = torch.round(outputs)
                 predicted = predicted.flatten()
+                # print(f'Predicted shape: {predicted.shape}')
+                # print(f'Predicted: {predicted}')
                 # Adjust shapes for the last batch
 
                 outputs = outputs.flatten()  # Flatten the output tensor
-                if model_type == 'LSTM':
-                    labels = labels.float().view(-1)  # Flatten the label tensor
-                    # Use raw probabilities in the loss calculation
-                    loss = criterion(outputs, labels.float())
-                    running_accuracy += accuracy(predicted, labels)
-                else:
-                    loss = criterion(outputs, sequence_labels.float())
-                    running_accuracy += accuracy(predicted, sequence_labels)
+                # labels = labels.float().view(-1)  # Flatten the label tensor
+                # Use raw probabilities in the loss calculation
+                loss = criterion(outputs, labels.float())
+                running_accuracy += accuracy(predicted, labels)
+
                 # Use rounded predictions in the loss calculation
                 # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
                 loss.backward()
@@ -300,11 +301,6 @@ if __name__ == "__main__":
             for inputs, labels in val_loader:
                 try:
                     inputs, labels = inputs.to(device), labels.to(device)
-                    if model_type == 'Transformer':
-                        # Compute sequence labels
-                        sequence_labels = labels.max(dim=1)[0]
-                        # If any row's label is 1, sequence label is 1, otherwise 0
-
                     outputs = model(inputs)
 
                     # Round the predictions to 0 or 1
@@ -313,15 +309,12 @@ if __name__ == "__main__":
 
                     # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
                     outputs = outputs.flatten()  # Flatten the output tensor
-                    if model_type == 'LSTM':
-                        labels = labels.float().view(-1)  # Flatten the label tensor
-                        # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
-                        # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
-                        loss = criterion(outputs, labels.float())
-                        val_accuracy += accuracy(predicted, labels)
-                    else:
-                        loss = criterion(outputs, sequence_labels.float())
-                        val_accuracy += accuracy(predicted, sequence_labels)
+                    # labels = labels.float().view(-1)  # Flatten the label tensor
+                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                    loss = criterion(outputs, labels.float())
+                    val_accuracy += accuracy(predicted, labels)
+
                     val_loss += loss.item()
 
                 except ValueError as e:
@@ -344,14 +337,15 @@ if __name__ == "__main__":
         training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
         # Save model if validation loss decreases
-        if (val_accuracy / len(val_loader)) < best_val_loss:
-            best_val_loss = (val_accuracy / len(val_loader))
+        if (val_loss / len(val_loader)) < best_val_loss:
+            best_val_loss = (val_loss / len(val_loader))
+            # print(f'Best validation loss updated: {best_val_loss}')
             torch.save(model.state_dict(), f'best_model{t_v}.pth')
             counter = 0  # Reset counter if there's improvement
         else:
             # Increment counter if there's no improvement
             counter += 1
-
+        # print(f'Counter: {counter}')
         # Check early stopping condition
         if counter >= patience:
             print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
@@ -359,7 +353,7 @@ if __name__ == "__main__":
 
     # Test phase
     model.eval()  # Set model to evaluation mode
-    batch_size = 25
+    batch_size = 1000
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     test_predictions = []
