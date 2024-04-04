@@ -65,22 +65,24 @@ if __name__ == "__main__":
                     model = LSTMClassifier(input_size, hidden_size).to(device)
                 else:
                     # Extract slice size from the model name
-                    slice_size = re.findall(r'\.(\d+)\.', model_name)
-                    print(f'Slice Size {slice_size}')
+                    # print(f'model name: {model_name}')
+                    slice_size = re.findall(r'\.(\d+)', model_name)
+                    # print(f'Slice Size {slice_size}')
                     slice_length = int(slice_size[1])
                     print(f'Using Transformer with slice size {slice_length}')
                     model = TransformerNN(slice_len=slice_length).to(device)
                 model.load_state_dict(torch.load(model_path))
 
                 # Add the model and its name to the list as a tuple
-                model_list.append((model, model_name))
+                model_list.append((model, model_name, slice_length))
 
-    for model, model_name in model_list:
+    for model, model_name, slice_length in model_list:
         # Set the model to evaluation mode
+        print(f'Model name: {model_name}, slice length: {slice_length}')
         model.eval()
         # Create a DataLoader for the test data
-        batch_size = 25
-        test_dataset = PTPDataset(test_data, test_label)
+        batch_size = 1000
+        test_dataset = PTPDataset(test_data, test_label, slice_length)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         # Lists to store predictions and targets
         test_predictions = []
