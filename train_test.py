@@ -193,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
     parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
-    parser.add_argument("-s", "--slice_length", default=16, help="Slice length for the Transformer")
+    parser.add_argument("-s", "--slice_length", type=int, default=16, help="Slice length for the Transformer")
 
     args = parser.parse_args()
     input_file = args.file_input
