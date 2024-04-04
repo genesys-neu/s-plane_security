@@ -51,7 +51,7 @@ if __name__ == "__main__":
                 model_path = os.path.join(root, model_file)
 
                 # Define the path for saving the confusion matrix plot
-                conf_matrix_plot_path = f"{model_name}_confusion_matrix.png"
+                conf_matrix_plot_path = os.path.join(model_dir, f"{model_name}_confusion_matrix.png")
 
                 # Check if the confusion matrix plot already exists
                 if os.path.exists(conf_matrix_plot_path):
@@ -69,8 +69,9 @@ if __name__ == "__main__":
                     slice_size = re.findall(r'\.(\d+)', model_name)
                     # print(f'Slice Size {slice_size}')
                     slice_length = int(slice_size[1])
-                    # print(f'Using Transformer with slice size {slice_length}')
-                    model = TransformerNN(slice_len=slice_length).to(device)
+                    n_heads = int(slice_size[0])
+                    print(f'Using Transformer with slice size {slice_length} and {n_heads} heads')
+                    model = TransformerNN(slice_len=slice_length, nhead=n_heads).to(device)
                 model.load_state_dict(torch.load(model_path))
 
                 # Add the model and its name to the list as a tuple
@@ -105,10 +106,10 @@ if __name__ == "__main__":
 
         # Plot the confusion matrix
         plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2f', cmap='Blues', cbar=False)
+        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
         plt.title(f'Confusion Matrix - Model {model_name}')
         # Save the confusion matrix plot as a .png file
-        plt.savefig(f"{model_name}_confusion_matrix.png")
+        plt.savefig(os.path.join(model_dir, f"{model_name}_confusion_matrix.png"))
         plt.close()
