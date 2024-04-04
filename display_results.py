@@ -1,12 +1,13 @@
 import os
 import torch
 from torch.utils.data import DataLoader
-from train_test import load_data, PTPDataset, LSTMClassifier
+from train_test import load_data, PTPDataset, LSTMClassifier, TransformerNN
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import argparse
 import numpy as np
+import re
 
 
 np.random.seed(17)
@@ -19,11 +20,13 @@ if __name__ == "__main__":
                         help="directory containing all the models to be tested")
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
+    parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
 
     args = parser.parse_args()
     model_dir = args.directory
     input_file = args.file_input
-    chunk_size = 100
+    model_type = args.model
+    chunk_size = 1000
 
     # Load the data
     _, _, test_data, _, _, test_label = load_data(input_file, chunk_size)
@@ -32,7 +35,7 @@ if __name__ == "__main__":
 
     # Define model parameters
     input_size = test_data.shape[1]
-    hidden_size = 64
+    hidden_size = 64  # for LSTM
     num_layers = 2
     output_size = 1
 
@@ -46,6 +49,7 @@ if __name__ == "__main__":
                 # Extract model name from the file name
                 model_name = os.path.splitext(model_file)[0]
                 model_path = os.path.join(root, model_file)
+
                 # Define the path for saving the confusion matrix plot
                 conf_matrix_plot_path = f"{model_name}_confusion_matrix.png"
 
@@ -55,7 +59,17 @@ if __name__ == "__main__":
                     continue
 
                 # Load the model weights
-                model = LSTMClassifier(input_size, hidden_size).to(device)
+                # Instantiate the model and move it to the GPU
+                if model_type == 'LSTM':
+                    print('Using LSTM')
+                    model = LSTMClassifier(input_size, hidden_size).to(device)
+                else:
+                    # Extract slice size from the model name
+                    slice_size = re.findall(r'\.(\d+)\.', model_name)
+                    print(f'Slice Size {slice_size}')
+                    slice_length = int(slice_size[1])
+                    print(f'Using Transformer with slice size {slice_length}')
+                    model = TransformerNN(slice_len=slice_length).to(device)
                 model.load_state_dict(torch.load(model_path))
 
                 # Add the model and its name to the list as a tuple
