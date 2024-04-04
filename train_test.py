@@ -340,7 +340,7 @@ if __name__ == "__main__":
         if (val_loss / len(val_loader)) < best_val_loss:
             best_val_loss = (val_loss / len(val_loader))
             # print(f'Best validation loss updated: {best_val_loss}')
-            torch.save(model.state_dict(), f'best_model{t_v}.pth')
+            torch.save(model.state_dict(), f'best_model_{t_v}.pth')
             counter = 0  # Reset counter if there's improvement
         else:
             # Increment counter if there's no improvement
