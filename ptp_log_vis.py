@@ -94,8 +94,8 @@ def main():
         
         # Define the folder path based on the attack type
         attack_folder_path = {
-            'Announce': '../securing_ORAN-master/DataCollectionPTP/RU/MaliciousTraffic/Announce/',
-            'Sync': '../securing_ORAN-master/DataCollectionPTP/RU/MaliciousTraffic/Sync_FollowUp/'
+            'Announce': './DataCollectionPTP/RU/MaliciousTraffic/Announce/',
+            'Sync': './DataCollectionPTP/RU/MaliciousTraffic/Sync_FollowUp/'
         }
 
         if args.attacks in ['Announce', 'Sync']:
@@ -107,8 +107,10 @@ def main():
                 
                 for file_name in os.listdir(attack_freq_folder_path):
                     file_path = os.path.join(attack_freq_folder_path, file_name)
+                    #print(file_path)
                     if os.path.isfile(file_path):
                         key = file_key_map.get(file_name)
+                        print(key)
                         if key == args.trace:
                             print(file_path)
                             rms_values, time_values = parse_file(file_path)
@@ -138,7 +140,7 @@ def main():
             #print(f'RMS array for {file_name}: {rms_array}')
             cur_file_name = file_name.replace('../securing_ORAN-master/DataCollectionPTP/RU/', "")
             new_file_name = cur_file_name.replace('/', " ")
-            print(time_array)
+            # print(time_array)
             plot.add_trace(px.Scatter(x=time_array, y=rms_array, mode='lines', name=f'{new_file_name}'))
 
             plot.update_layout(
