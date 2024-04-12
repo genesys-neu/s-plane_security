@@ -2,6 +2,7 @@ import threading
 import queue
 import time
 import argparse
+from train_test import TransformerNN
 
 
 def acquisition(packet_queue):
