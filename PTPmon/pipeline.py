@@ -1,30 +1,67 @@
-import multiprocessing
 import threading
 import queue
 import time
+import argparse
 
 
-def acquire_and_preprocess(packet_queue):
+def acquisition(packet_queue):
     """
-    Function representing the packet acquisition and preprocessing process.
-    Acquires packets and preprocesses them before passing them to the next stage.
+    Function representing the packet acquisition thread.
+    Acquires packets and puts them into the packet queue.
     """
-    while True:
+    while not exit_flag.is_set():
         packet = acquire_packet()
-        preprocessed_packet = preprocess_packet(packet)
-        packet_queue.put(preprocessed_packet)
+        packet_queue.put(packet)
+        # Optionally, add a delay or condition to control the acquisition rate
 
 
-def create_sequence_and_inference(preprocessing_queue):
+def pre_processing(packet_queue, preprocessed_queue):
     """
-    Function representing the sequence creation and model inference process.
-    Creates sequences from preprocessed packets and performs model inference.
+    Function representing the pre-processing thread.
+    Retrieves packets from the packet queue, preprocesses them, and puts them into the preprocessed queue.
     """
-    while True:
-        preprocessed_packet = preprocessing_queue.get()
-        sequence = create_sequence(preprocessed_packet)
-        label = inference(sequence)
-        print("Predicted label:", label)
+    while not exit_flag.is_set():
+        try:
+            packet = packet_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            preprocessed_packet = preprocess_packet(packet)
+            preprocessed_queue.put(preprocessed_packet)
+        except queue.Empty:
+            continue
+
+
+def inference(preprocessed_queue):
+    """
+    Function representing the inference thread.
+    Retrieves preprocessed packets from the preprocessed queue, accumulates them to form a sequence,
+    and then performs inference on the complete sequence.
+    """
+    sequence = []  # Initialize an empty sequence
+    # start_time = time.time()  # Initialize start time for the timer
+    while not exit_flag.is_set():
+        try:
+            preprocessed_packet = preprocessed_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            sequence.append(preprocessed_packet)
+
+            # Check if sequence length meets the desired criteria (e.g., a fixed length or a certain number of packets)
+            if len(sequence) == desired_sequence_length:
+                label = model_inference(sequence)
+                print("Predicted label:", label)
+                sequence = []  # Reset the sequence after making an inference
+                # sequence.pop(0)  # Remove the oldest element from the sequence (sliding window)
+
+            ''' 
+            # Another time based approach we could use.
+            if len(sequence) == desired_sequence_length:
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= timer_interval:
+                    label = model_inference(sequence)
+                    print("Predicted label:", label)
+                    start_time = time.time()  # Reset the start time for the timer
+                sequence.pop(0)  # Remove the oldest element from the sequence (sliding window)
+            '''
+
+        except queue.Empty:
+            continue
 
 
 def acquire_packet():
@@ -47,17 +84,7 @@ def preprocess_packet(packet):
     return packet
 
 
-def create_sequence(preprocessed_packet):
-    """
-    Placeholder function for sequence creation logic.
-    This function creates a sequence from preprocessed packet data.
-    """
-    # Placeholder for actual sequence creation logic
-    # For simplicity, let's return a dummy sequence
-    return [preprocessed_packet] * 10  # Just repeat the preprocessed packet 10 times
-
-
-def inference(sequence):
+def model_inference(sequence):
     """
     Placeholder function for model inference logic.
     This function performs inference using the ML model.
@@ -67,19 +94,56 @@ def inference(sequence):
     return "Dummy Label"
 
 
+def signal_handler(sig, frame):
+    """
+    Signal handler function to gracefully handle keyboard interrupts (Ctrl+C).
+    """
+    print("\nExiting gracefully...")
+    exit_flag.set()
+
+
 if __name__ == "__main__":
-    # Initialize queues for communication between threads and processes
+    # Initialize queues for communication between threads
     packet_queue = queue.Queue()
-    preprocessing_queue = queue.Queue()
+    preprocessed_queue = queue.Queue()
 
-    # Create and start the packet acquisition and preprocessing thread
-    acquire_preprocess_thread = threading.Thread(target=acquire_and_preprocess, args=(packet_queue,))
-    acquire_preprocess_thread.start()
+    # Initialize exit flag for graceful termination
+    exit_flag = threading.Event()
 
-    # Create and start the packet preprocessing and inference process
-    preprocessing_inference_process = multiprocessing.Process(target=create_sequence_and_inference, args=(preprocessing_queue,))
-    preprocessing_inference_process.start()
+    # Register signal handler for Ctrl+C (KeyboardInterrupt)
+    signal.signal(signal.SIGINT, signal_handler)
 
-    # Join the thread and process to wait for their completion
-    acquire_preprocess_thread.join()
-    preprocessing_inference_process.join()
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Run packet processing with optional timeout")
+    parser.add_argument("-t", "--time_out", type=int, help="Timeout in seconds")
+    args = parser.parse_args()
+
+    # Create and start the acquisition thread
+    acquisition_thread = threading.Thread(target=acquisition, args=(packet_queue,))
+    acquisition_thread.start()
+
+    # Create and start the pre-processing thread
+    pre_processing_thread = threading.Thread(target=pre_processing, args=(packet_queue, preprocessed_queue,))
+    pre_processing_thread.start()
+
+    # Create and start the inference thread
+    inference_thread = threading.Thread(target=inference, args=(preprocessed_queue,))
+    inference_thread.start()
+
+    try:
+        # Optionally, run the program continuously for a specified time (time_out)
+        if args.time_out:
+            time.sleep(args.time_out)
+            exit_flag.set()
+        else:
+            while not exit_flag.is_set():
+                time.sleep(1)  # Main thread sleeps to keep the program running
+    except KeyboardInterrupt:
+        exit_flag.set()
+
+    # Join the threads to wait for their completion
+    acquisition_thread.join()
+    pre_processing_thread.join()
+    inference_thread.join()
+
+    print("Program exited successfully.")
