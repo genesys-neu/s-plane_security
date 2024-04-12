@@ -47,7 +47,7 @@ def inference(preprocessed_queue, sequence_length):
                 label = model_inference(sequence)
                 print("Predicted label:", label)
                 # sequence = []  # Reset the sequence after making an inference
-                sequence = sequence[2:] # Remove the 2 oldest element from the sequence (sliding window)
+                sequence = sequence[2:]  # Remove the 2 oldest element from the sequence (sliding window)
 
             ''' 
             # Another time based approach we could use.
