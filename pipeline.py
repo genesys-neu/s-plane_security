@@ -3,6 +3,8 @@ import queue
 import time
 import argparse
 from train_test import TransformerNN
+import re
+import torch
 
 
 def acquisition(packet_queue):
@@ -30,7 +32,7 @@ def pre_processing(packet_queue, preprocessed_queue):
             continue
 
 
-def inference(preprocessed_queue, sequence_length):
+def inference(preprocessed_queue, model, sequence_length, device):
     """
     Function representing the inference thread.
     Retrieves preprocessed packets from the preprocessed queue, accumulates them to form a sequence,
@@ -45,7 +47,11 @@ def inference(preprocessed_queue, sequence_length):
 
             # Check if sequence length meets the desired criteria (e.g., a fixed length or a certain number of packets)
             if len(sequence) == sequence_length:
-                label = model_inference(sequence)
+                # Move sequence to the correct device
+                sequence_tensor = torch.tensor(sequence).unsqueeze(0).to(device)
+                # Forward pass
+                outputs = model(sequence_tensor)
+                label = torch.round(outputs)  # Round the predictions to 0 or 1
                 print("Predicted label:", label)
                 # sequence = []  # Reset the sequence after making an inference
                 sequence = sequence[2:]  # Remove the 2 oldest element from the sequence (sliding window)
@@ -85,16 +91,6 @@ def preprocess_packet(packet):
     return packet
 
 
-def model_inference(sequence):
-    """
-    Placeholder function for model inference logic.
-    This function performs inference using the ML model.
-    """
-    # Placeholder for actual inference logic using the ML model
-    # For simplicity, let's return a dummy label
-    return "Dummy Label"
-
-
 def signal_handler(sig, frame):
     """
     Signal handler function to gracefully handle keyboard interrupts (Ctrl+C).
@@ -117,11 +113,31 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run packet processing with optional timeout")
     parser.add_argument("-t", "--time_out", type=int, help="Timeout in seconds")
-    parser.add_argument("-l", "--length", type=int, default=40, help="Length of sequence")
+    parser.add_argument("-m", "--model", type=str, required=True,
+                        help="Model weights to load (include path)")
     args = parser.parse_args()
 
     # Set the desired_sequence_length based on the command-line argument
     desired_sequence_length = args.length
+
+    # Initialize the device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Initialize and use your model with the extracted parameters
+    slice_size_match = re.findall(r'\.(\d+)', args.model)
+    if len(slice_size_match) == 2:
+        slice_length = int(slice_size_match[1])
+        n_heads = int(slice_size_match[0])
+        print(f'Using Transformer with slice size {slice_length} and {n_heads} heads')
+        model = TransformerNN(slice_len=slice_length, nhead=n_heads).to(device)
+        try:
+            model.load_state_dict(torch.load(args.model))
+        except FileNotFoundError:
+            print(f"Model weights file '{args.model}' not found.")
+        except Exception as e:
+            print(f"Error loading model weights: {str(e)}")
+    else:
+        print("Invalid model name format. Please specify the slice size and number of heads.")
 
     # Create and start the acquisition thread
     acquisition_thread = threading.Thread(target=acquisition, args=(packet_queue,))
@@ -132,7 +148,8 @@ if __name__ == "__main__":
     pre_processing_thread.start()
 
     # Create and start the inference thread
-    inference_thread = threading.Thread(target=inference, args=(preprocessed_queue, desired_sequence_length,))
+    inference_thread = threading.Thread(target=inference,
+                                        args=(preprocessed_queue, model, slice_length, device,))
     inference_thread.start()
 
     try:
