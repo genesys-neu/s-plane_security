@@ -29,7 +29,7 @@ def pre_processing(packet_queue, preprocessed_queue):
             continue
 
 
-def inference(preprocessed_queue):
+def inference(preprocessed_queue, sequence_length):
     """
     Function representing the inference thread.
     Retrieves preprocessed packets from the preprocessed queue, accumulates them to form a sequence,
@@ -43,11 +43,11 @@ def inference(preprocessed_queue):
             sequence.append(preprocessed_packet)
 
             # Check if sequence length meets the desired criteria (e.g., a fixed length or a certain number of packets)
-            if len(sequence) == desired_sequence_length:
+            if len(sequence) == sequence_length:
                 label = model_inference(sequence)
                 print("Predicted label:", label)
-                sequence = []  # Reset the sequence after making an inference
-                # sequence.pop(0)  # Remove the oldest element from the sequence (sliding window)
+                # sequence = []  # Reset the sequence after making an inference
+                sequence = sequence[2:] # Remove the 2 oldest element from the sequence (sliding window)
 
             ''' 
             # Another time based approach we could use.
@@ -116,7 +116,11 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run packet processing with optional timeout")
     parser.add_argument("-t", "--time_out", type=int, help="Timeout in seconds")
+    parser.add_argument("-l", "--length", type=int, default=40, help="Length of sequence")
     args = parser.parse_args()
+
+    # Set the desired_sequence_length based on the command-line argument
+    desired_sequence_length = args.length
 
     # Create and start the acquisition thread
     acquisition_thread = threading.Thread(target=acquisition, args=(packet_queue,))
@@ -127,7 +131,7 @@ if __name__ == "__main__":
     pre_processing_thread.start()
 
     # Create and start the inference thread
-    inference_thread = threading.Thread(target=inference, args=(preprocessed_queue,))
+    inference_thread = threading.Thread(target=inference, args=(preprocessed_queue, desired_sequence_length,))
     inference_thread.start()
 
     try:
