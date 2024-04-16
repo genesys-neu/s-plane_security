@@ -5,6 +5,9 @@ import argparse
 from train_test import TransformerNN
 import re
 import torch
+from functools import partial
+from scapy.all import *
+from scapy.all import Ether
 
 
 def acquisition(packet_queue):
@@ -13,8 +16,7 @@ def acquisition(packet_queue):
     Acquires packets and puts them into the packet queue.
     """
     while not exit_flag.is_set():
-        packet = acquire_packet()
-        packet_queue.put(packet)
+        acquire_packet(packet_queue)
         # Optionally, add a delay or condition to control the acquisition rate
 
 
@@ -78,6 +80,45 @@ def acquire_packet():
     """
     # Placeholder for actual packet acquisition logic
     # For simplicity, let's return a dummy packet
+
+    # Mapping the type of message
+    mapping = {
+    '0':'Sync',
+    '8':'FollowUp',
+    '11':'Announce',
+    '1':'DelayRequest',
+    '9':'DelayResponse'
+    }
+
+    # Local function to process data
+    def process_ptp_packet(pkt, packet_queue):
+        ptp_info = []
+        # Check if the packet is PTP 
+        if Ether in pkt:
+            # Check if the protocol is PTP 
+            if pkt[Ether].type == 35063:
+                # Extracting PTP raw data
+                ptp_layer = pkt.load
+                # Extracting desired parameters
+                ptp_info.append(pkt[Ether].src) # source
+                ptp_info.append(pkt[Ether].dst) # destination
+                ptp_info.append(len(pkt)) # packet length
+                ptp_info.append(int.from_bytes(ptp_layer[30:32], byteorder='big')) #sequence ID
+                ptp_info.append(mapping[str(int.from_bytes(ptp_layer[:1], byteorder='big'))]) # message type
+                ptp_info.append(pkt.time) # timestamp
+                # Put ptp info into the queue
+                print(ptp_info)
+                packet_queue.put(ptp_info)
+
+    # Define the interface to sniff on
+    interface = 'enp4s0'
+    
+    process_ptp_packet_with_param = partial(process_ptp_packet, packet_queue=packet_queue)
+    time = 5
+    if args.time_out:
+        time = args.time_out/2
+    # Start sniffing packets
+    sniff(iface=interface, prn=process_ptp_packet_with_param, timeout = time)
     return "Dummy Packet"
 
 
