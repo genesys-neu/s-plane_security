@@ -79,6 +79,7 @@ def load_data(input_file, attack_type):
     df, mapping = map_categories(df, ['Source', 'Destination'])
 
     # Get the list of remaining categorical columns
+    # TODO: Update message type with fixed mapping
     categorical_columns = df.select_dtypes(include=['object']).columns
     # Convert categorical columns to numerical data
     for column in categorical_columns:
