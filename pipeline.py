@@ -9,6 +9,9 @@ from functools import partial
 from scapy.all import *
 from scapy.all import Ether
 
+initial_time = None # Time used to calculate the offset for interarrival time
+mac_mapping = {} #Dictionary for MAC mapping {MAC:index}
+index = 0 # Index to map MAC addresses
 
 def acquisition(packet_queue):
     """
@@ -18,7 +21,6 @@ def acquisition(packet_queue):
     while not exit_flag.is_set():
         acquire_packet(packet_queue)
         # Optionally, add a delay or condition to control the acquisition rate
-
 
 def pre_processing(packet_queue, preprocessed_queue):
     """
@@ -73,27 +75,20 @@ def inference(preprocessed_queue, model, sequence_length, device):
             continue
 
 
-def acquire_packet():
+def acquire_packet(packet_queue):
     """
     Placeholder function for packet acquisition logic.
     This function acquires packets from the network.
     """
     # Placeholder for actual packet acquisition logic
     # For simplicity, let's return a dummy packet
-
-    # Mapping the type of message
-    mapping = {
-    '0':'Sync',
-    '8':'FollowUp',
-    '11':'Announce',
-    '1':'DelayRequest',
-    '9':'DelayResponse'
-    }
-
     # Local function to process data
     def process_ptp_packet(pkt, packet_queue):
-        ptp_info = []
-        # Check if the packet is PTP 
+        global initial_time # Variable used to calculate the interarrival time
+        ptp_info = [] # List to be added to the queue representing each packet
+        if (initial_time == None):
+            initial_time = pkt.time
+        # Check if the packet is ETH 
         if Ether in pkt:
             # Check if the protocol is PTP 
             if pkt[Ether].type == 35063:
@@ -104,17 +99,16 @@ def acquire_packet():
                 ptp_info.append(pkt[Ether].dst) # destination
                 ptp_info.append(len(pkt)) # packet length
                 ptp_info.append(int.from_bytes(ptp_layer[30:32], byteorder='big')) #sequence ID
-                ptp_info.append(mapping[str(int.from_bytes(ptp_layer[:1], byteorder='big'))]) # message type
-                ptp_info.append(pkt.time) # timestamp
+                ptp_info.append(int.from_bytes(ptp_layer[:1], byteorder='big')) # message type
+                ptp_info.append(pkt.time - initial_time) # timestamp
                 # Put ptp info into the queue
-                print(ptp_info)
                 packet_queue.put(ptp_info)
-
+                initial_time = pkt.time # Update the last timestamp
     # Define the interface to sniff on
     interface = 'enp4s0'
-    
+    # Create partial function to include new parameters
     process_ptp_packet_with_param = partial(process_ptp_packet, packet_queue=packet_queue)
-    time = 5
+    time = 5 # default time for sniffing
     if args.time_out:
         time = args.time_out/2
     # Start sniffing packets
@@ -122,14 +116,23 @@ def acquire_packet():
     return "Dummy Packet"
 
 
-def preprocess_packet(packet):
-    """
-    Placeholder function for packet preprocessing logic.
-    This function preprocesses the acquired packet data.
-    """
-    # Placeholder for actual packet preprocessing logic
-    # For simplicity, let's return the packet as is
-    return packet
+def preprocess_packet(packet_within_queue):
+    global index # Index to map the MAC addresses
+    # Source addresses processed
+    if packet_within_queue[0] not in mac_mapping.keys():
+        mac_mapping[packet_within_queue[0]] = index
+        packet_within_queue[0] = index
+        index += 1
+    else:
+        packet_within_queue[0] = mac_mapping[packet_within_queue[0]]
+    # Destination addresses processed
+    if packet_within_queue[1] not in mac_mapping.keys():
+        mac_mapping[packet_within_queue[1]] = index
+        packet_within_queue[1] = index
+        index += 1
+    else:
+        packet_within_queue[1] = mac_mapping[packet_within_queue[1]]
+    return packet_within_queue
 
 
 def signal_handler(sig, frame):
