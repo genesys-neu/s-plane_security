@@ -106,10 +106,12 @@ if __name__ == "__main__":
 
         # Plot the confusion matrix
         plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False)
-        plt.xlabel('Predicted Label')
-        plt.ylabel('True Label')
-        plt.title(f'Confusion Matrix - Model {model_name}')
+        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False, annot_kws={"size":24})
+        plt.xlabel('Predicted Label', fontsize=18)
+        plt.ylabel('True Label', fontsize=18)
+        plt.xticks(fontsize=18)
+        plt.yticks(fontsize=18)
+        # plt.title(f'Confusion Matrix - Model {model_name}')
         # Save the confusion matrix plot as a .png file
         plt.savefig(os.path.join(model_dir, f"{model_name}_confusion_matrix.png"))
         plt.close()
