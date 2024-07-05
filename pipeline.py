@@ -8,6 +8,7 @@ import torch
 from functools import partial
 from scapy.all import *
 from scapy.all import Ether
+import signal #SIMONE add signal library
 
 initial_time = None # Time used to calculate the offset for interarrival time
 mac_mapping = {} #Dictionary for MAC mapping {MAC:index}
@@ -105,7 +106,7 @@ def acquire_packet(packet_queue):
                 packet_queue.put(ptp_info)
                 initial_time = pkt.time # Update the last timestamp
     # Define the interface to sniff on
-    interface = 'enp4s0'
+    interface = 'enp1s0f1np1' #SIMONE changed the interface from enp4s0 (attacker's interface) to enp1s0f1np1 (DU interface)
     # Create partial function to include new parameters
     process_ptp_packet_with_param = partial(process_ptp_packet, packet_queue=packet_queue)
     time = 5 # default time for sniffing
@@ -162,20 +163,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set the desired_sequence_length based on the command-line argument
-    desired_sequence_length = args.length
+    #desired_sequence_length = args.length SIMONE COMMENTED BECAUSE NOT USED AND GENERATES AN ERROR
 
     # Initialize the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize and use your model with the extracted parameters
     slice_size_match = re.findall(r'\.(\d+)', args.model)
+    model = None #SIMONE Initially declared model
+    slice_length = None #SIMONE Initially declared model
     if len(slice_size_match) == 2:
         slice_length = int(slice_size_match[1])
         n_heads = int(slice_size_match[0])
         print(f'Using Transformer with slice size {slice_length} and {n_heads} heads')
         model = TransformerNN(slice_len=slice_length, nhead=n_heads).to(device)
         try:
-            model.load_state_dict(torch.load(args.model))
+            #SIMONE add the map_location since without this parameter it raises an error if CPU is used 
+            model.load_state_dict(torch.load(args.model, map_location=device))
         except FileNotFoundError:
             print(f"Model weights file '{args.model}' not found.")
         except Exception as e:
