@@ -1,14 +1,18 @@
 import os
+import sys
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-from train_test import TransformerNN, PTPDataset
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import argparse
 import numpy as np
 import re
-import pandas
+import pandas as pd
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+from train_test import TransformerNN, PTPDataset
 
 
 def load_data(input_file):
@@ -43,7 +47,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Define model parameters
-    input_size = test_data.shape[1]
+    input_size = features.shape[1]
     hidden_size = 64  # for LSTM
     num_layers = 2
     output_size = 1
