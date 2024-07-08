@@ -1,18 +1,37 @@
 import os
 import sys
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+import pandas as pd
+from torch.utils.data import DataLoader, Dataset
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import argparse
 import numpy as np
 import re
-import pandas as pd
 
+# Add the parent directory to the Python path
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
-from train_test import TransformerNN, PTPDataset
+
+from train_test import TransformerNN, LSTMClassifier  # Adjust the imports based on your module
+
+
+class PTPDataset(Dataset):
+    def __init__(self, data, labels, sequence_length):
+        self.data = data
+        self.labels = labels
+        self.sequence_length = sequence_length
+
+    def __len__(self):
+        return len(self.data) - self.sequence_length + 1
+
+    def __getitem__(self, idx):
+        end_idx = idx + self.sequence_length
+        sample = self.data[idx:end_idx]
+        label_tensor = self.labels[idx:end_idx]
+        label = torch.tensor(1 if torch.any(label_tensor) else 0, dtype=torch.long)
+        return sample, label
 
 
 def load_data(input_file):
@@ -20,29 +39,31 @@ def load_data(input_file):
     df = pd.read_csv(input_file)
 
     # Separate features and labels
-    features = df.iloc[:, :-1] # All columns except the last one
-    labels = df['Label']       # The last column
+    features = df.iloc[:, :-1]
+    labels = df['Label']
 
     return features, labels
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--directory", default='./',
                         help="directory containing all the models to be tested")
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
-    parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
+    parser.add_argument("-m", "--model", default='Transformer', help="Choose Transformer or LSTM")
 
     args = parser.parse_args()
     model_dir = args.directory
     input_file = args.file_input
     model_type = args.model
-    chunk_size = 1000
 
     # Load the data
     features, labels = load_data(input_file)
+
+    # Convert to PyTorch tensors
+    features_tensor = torch.tensor(features.values, dtype=torch.float32)
+    labels_tensor = torch.tensor(labels.values, dtype=torch.float32)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -75,16 +96,18 @@ if __name__ == "__main__":
                 # Instantiate the model and move it to the GPU
                 if model_type == 'LSTM':
                     print('Using LSTM')
-                    model = LSTMClassifier(input_size, hidden_size).to(device)
+                    model = LSTMClassifier(input_size, hidden_size, num_layers, output_size).to(device)
                 else:
                     # Extract slice size from the model name
-                    # print(f'model name: {model_name}')
-                    slice_size = re.findall(r'\.(\d+)', model_name)
-                    # print(f'Slice Size {slice_size}')
-                    slice_length = int(slice_size[1])
-                    n_heads = int(slice_size[0])
-                    print(f'Using Transformer with slice size {slice_length} and {n_heads} heads')
-                    model = TransformerNN(slice_len=slice_length, nhead=n_heads).to(device)
+                    slice_size_match = re.findall(r'\.(\d+)', model_name)
+                    if len(slice_size_match) == 2:
+                        n_heads = int(slice_size_match[0])
+                        slice_length = int(slice_size_match[1])
+                        print(f'Using Transformer with slice size {slice_length} and {n_heads} heads')
+                        model = TransformerNN(slice_len=slice_length, nhead=n_heads).to(device)
+                    else:
+                        print(f"Invalid model name format: {model_name}. Skipping...")
+                        continue
                 model.load_state_dict(torch.load(model_path))
 
                 # Add the model and its name to the list as a tuple
@@ -96,7 +119,7 @@ if __name__ == "__main__":
         model.eval()
         # Create a DataLoader for the test data
         batch_size = 1000
-        test_dataset = PTPDataset(features, labels, slice_length)
+        test_dataset = PTPDataset(features_tensor, labels_tensor, slice_length)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         # Lists to store predictions and targets
         test_predictions = []
@@ -119,7 +142,7 @@ if __name__ == "__main__":
 
         # Plot the confusion matrix
         plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False, annot_kws={"size":24})
+        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False, annot_kws={"size": 24})
         plt.xlabel('Predicted Label', fontsize=18)
         plt.ylabel('True Label', fontsize=18)
         plt.xticks(fontsize=18)
