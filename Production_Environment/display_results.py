@@ -18,18 +18,20 @@ from train_test import TransformerNN, LSTMClassifier  # Adjust the imports based
 
 
 class PTPDataset(Dataset):
-    def __init__(self, data, labels, sequence_length):
+    def __init__(self, data, labels, sequence_length, stride=2):
         self.data = data
         self.labels = labels
         self.sequence_length = sequence_length
+        self.stride = stride
 
     def __len__(self):
-        return len(self.data) - self.sequence_length + 1
+        return (len(self.data) - self.sequence_length) // self.stride + 1
 
     def __getitem__(self, idx):
-        end_idx = idx + self.sequence_length
-        sample = self.data[idx:end_idx]
-        label_tensor = self.labels[idx:end_idx]
+        start_idx = idx * self.stride
+        end_idx = start_idx + self.sequence_length
+        sample = self.data[start_idx:end_idx]
+        label_tensor = self.labels[start_idx:end_idx]
         label = torch.tensor(1 if torch.any(label_tensor) else 0, dtype=torch.long)
         return sample, label
 
@@ -119,7 +121,7 @@ if __name__ == "__main__":
         model.eval()
         # Create a DataLoader for the test data
         batch_size = 1000
-        test_dataset = PTPDataset(features_tensor, labels_tensor, slice_length)
+        test_dataset = PTPDataset(features_tensor, labels_tensor, slice_length, stride=2)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         # Lists to store predictions and targets
         test_predictions = []
