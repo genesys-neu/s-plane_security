@@ -17,9 +17,11 @@ overall_confusion_matrix_nobg = np.array([[0.9602, 0.0398], [0.0072, 0.9928]])
 overall_confusion_matrix_bg = np.array([[0.4881, 0.5119], [0.0307, 0.9693]])
 heuristic = np.array([[0.9947, 0.0053], [0.8220, 0.1780]])
 toverall_confusion_matrix_bg = np.array([[0.8178, 0.1822], [0.0736, 0.9264]])
+t7jul_lat_ext_9jul1 = np.array([[0.8089696, 0.1910304], [0.0522441, 0.9477559]])
+
 # Plot the confusion matrix
 plt.figure(figsize=(6, 3))
-sns.heatmap(toverall_confusion_matrix_bg, annot=True, fmt='.2%', cmap='Blues', cbar=False, annot_kws={"size": 24})
+sns.heatmap(t7jul_lat_ext_9jul1, annot=True, fmt='.2%', cmap='Blues', cbar=False, annot_kws={"size": 24})
 plt.xlabel('Predicted Label', fontsize=18)
 plt.ylabel('True Label', fontsize=18)
 plt.xticks(fontsize=18)
@@ -35,5 +37,5 @@ plt.gca().spines['bottom'].set_visible(True)  # show right line
 plt.tight_layout()
 # plt.title(f'Confusion Matrix - Model {model_name}')
 # Save the confusion matrix plot as a .png file
-plt.savefig(f"2overall_confusion_matrix_bg.png")
+plt.savefig(f"t7jul_lat_ext_9jul1.png")
 plt.close()
