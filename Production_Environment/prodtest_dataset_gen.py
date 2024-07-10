@@ -29,7 +29,7 @@ def label_data(df):
     df['Label'] = 0
 
     # Set 'Label' to 1 where both conditions are true
-    df.loc[(df['Source'] == 'b8:ce:f6:5e:6b:4a') & (df['MessageType'] == 11), 'Label'] = 1
+    df.loc[(df['Source'] == 'b8:ce:f6:5e:6b:4a') & (df['Time'] >= 78.506815) & (df['Time'] <= 102.512281), 'Label'] = 1
 
     return df
 
