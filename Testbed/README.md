@@ -10,6 +10,7 @@ The Testbed Environment consists of 3 elements: the DU, the RU and the attacker 
 - **Attacker:** Performs the attacks on the PTP Protocol
   
 ### DU
+- **Automated Scripts**: This folder consists of a set of scripts that automate the data collection and the pipeline tests. In particular we have a python script to run the Open Fronthaul Background Traffic (*automated_bg_traffic.py*) which requires the synchronization between the DU and RU, one for the data collection (*automated_data_collection.py*) and another for the benign traffic data collection (*automated_benign_data_collection.py*). The data collection needs the synchronization between the DU and the Attacker while the benign traffic data collection can run independently. Eventually, we also have the script to test the detection of the pipeline (*automated_test_DU.py*).
 
 ### RU
 
