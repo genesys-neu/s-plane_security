@@ -19,19 +19,20 @@ The Testbed Environment consists of 3 elements: the DU, the RU and the attacker 
 
 ### Attacker
 
-## Features
-
-## Requirements
-
 ## Running the Scripts
 
 ### Open Fronthaul Background Traffic
+## Requirements
 
 ### Benign Data Collection
+## Requirements
 
 ### Attacks Data Collection
+## Requirements
 
 ### Dataset Generation
+## Requirements
 
 ### Testing the Pipeline
+## Requirements
 
