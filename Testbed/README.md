@@ -38,6 +38,34 @@ These files are read simultaneously by both the DU and RU to replicate the traff
 - Python 3
 
 #### Usage
+For both the DU and RU the *OFH_tgen.py* and *automated_bg_traffic.py* scripta must be in the same folder along with the *Cleande_CU_plane_traces* folder. The procedure is the same for both the DU and the RU but **the DU must be started first**
+
+1. **Installation**:
+   - Ensure that Python 3.x is installed on your system.
+
+2. **Running the Script**:
+   - Navigate to the directory containing the script (`automated_bg_traffic.py`).
+   - in the DU, run the script with the following command:
+     ```
+     sudo python3 autpmated_bg_traffic.py [-i <ip_destination>] [-d <duration>]
+     ```
+     - in the RU, run the script with the following command:
+     ```
+     sudo python3 autpmated_bg_traffic.py [-i <ip_destination>] [-d <duration>] [-r]
+     ```
+     All arguments are mandatory.
+     - Replace `<ip_destination>` with the ip of the other machine you want to exchange traffic with.
+     - Replace `<duration>` with the duration of the experiment.
+     - [-r] is the flag that specifies that the specific device is the RU
+
+3. **Output**:
+   - The script will first establish connection between DU and RU.
+   - It will cyclically run the 'OFH_tgen.py' script for each trace.
+   - The traffic will be printed on terminal.
+
+4. **Customization**:
+- Adjust the parameters according to your environment and the duration of your experiment.
+
 
 ### Benign Data Collection
 #### Requirements
