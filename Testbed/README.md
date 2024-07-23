@@ -56,7 +56,7 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` scripta m
      ```
      All arguments are mandatory.
      - Replace `<ip_destination>` with the ip of the other machine you want to exchange traffic with.
-     - Replace `<duration>` with the duration of the experiment.
+     - Replace `<duration>` with the duration of the experiment in seconds, it must be the same for both DU and RU.
      - `-r` is the flag that specifies that the specific device is the RU
 
 3. **Output**:
@@ -66,7 +66,16 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` scripta m
 
 4. **Customization**:
 - Adjust the parameters according to your environment and the duration of your experiment.
-
+- 
+### Example
+```
+sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800 -r
+```
+This command starts the script in the RU, it connects to the DU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
+```
+sudo python3 automated_bg_traffic.py -i 192.168.40.50 -d 1800 
+```
+This command starts the script in the DU, it connects to the RU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
 ### Benign Data Collection
 #### Requirements
