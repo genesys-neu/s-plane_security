@@ -39,7 +39,7 @@ These files are read simultaneously by both the DU and RU to replicate the traff
 - Python 3
 
 #### Usage
-For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` scripta must be in the same folder along with the `Cleande_CU_plane_traces` folder. The procedure is the same for both the DU and the RU but **the DU must be started first**
+For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` script must be in the same folder along with the `Cleande_CU_plane_traces` folder. The procedure is the same for both the DU and the RU but **the DU must be started first**
 
 1. **Installation**:
    - Ensure that Python 3.x is installed on your system.
@@ -79,8 +79,13 @@ sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800 -r
 This command starts the script in the RU, it connects to the DU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
 ### Benign Data Collection
+This task is only performed by the DU. It is supposed that the Background Traffic mentioned above is running.
+
 #### Requirements
+- Python3
+- 
 #### Usage
+
 
 ### Attacks Data Collection
 #### Requirements
