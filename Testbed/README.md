@@ -66,7 +66,7 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` scripta m
 
 4. **Customization**:
 - Adjust the parameters according to your environment and the duration of your experiment.
-- 
+
 ### Example
 ```
 sudo python3 automated_bg_traffic.py -i 192.168.40.51 -d 1800 
