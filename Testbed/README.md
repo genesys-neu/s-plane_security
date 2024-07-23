@@ -69,7 +69,7 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` scripta m
 - 
 ### Example
 ```
-sudo python3 automated_bg_traffic.py -i 192.168.40.50 -d 1800 
+sudo python3 automated_bg_traffic.py -i 192.168.40.51 -d 1800 
 ```
 This command starts the script in the DU, it connects to the RU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
