@@ -44,7 +44,7 @@ For both the DU and RU the *OFH_tgen.py* and *automated_bg_traffic.py* scripta m
    - Ensure that Python 3.x is installed on your system.
 
 2. **Running the Script**:
-   - Navigate to the directory containing the script (`automated_bg_traffic.py`).
+   - Navigate to the directory containing the script `automated_bg_traffic.py`.
    - in the DU, run the script with the following command:
      ```
      sudo python3 autpmated_bg_traffic.py [-i <ip_destination>] [-d <duration>]
@@ -56,11 +56,11 @@ For both the DU and RU the *OFH_tgen.py* and *automated_bg_traffic.py* scripta m
      All arguments are mandatory.
      - Replace `<ip_destination>` with the ip of the other machine you want to exchange traffic with.
      - Replace `<duration>` with the duration of the experiment.
-     - [-r] is the flag that specifies that the specific device is the RU
+     - `-r` is the flag that specifies that the specific device is the RU
 
 3. **Output**:
    - The script will first establish connection between DU and RU.
-   - It will cyclically run the 'OFH_tgen.py' script for each trace.
+   - It will cyclically run the `OFH_tgen.py` script for each trace.
    - The traffic will be printed on terminal.
 
 4. **Customization**:
