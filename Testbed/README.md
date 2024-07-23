@@ -37,7 +37,6 @@ These files are read simultaneously by both the DU and RU to replicate the traff
 
 #### Requirements
 - Python 3
-
 #### Usage
 For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` script must be in the same folder along with the `Cleande_CU_plane_traces` folder. The procedure is the same for both the DU and the RU but **the DU must be started first**
 
@@ -83,7 +82,7 @@ This task is only performed by the DU. It is supposed that the Background Traffi
 
 #### Requirements
 - Python3
-- 
+  
 #### Usage
 
 
