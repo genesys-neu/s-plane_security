@@ -27,7 +27,7 @@ The Testbed Environment consists of 3 elements: the DU, the RU and the attacker 
 
 ### Open Fronthaul Background Traffic
 This process is performed by the DU and RU. The files involved have the same nomenclature for both the machines. The *automated_bg_traffic.py* script first estabish the synchronization between the RU and DU, then it reads the Background Traffic contained in *.csv* files contained in the *Cleaned_CU_Traces* folder, crafts every single packet and sends it through the proper interface. The four Background Traces are:
-- *run1-12sep-aerial-udpDL*
+- *run1-12sep-aerial-udpDL.csv*
 - *run1-8sep-aerial-increasingDL-withUL.csv*
 - *run2-8sep-aerial-increasingDL-noUL.csv*
 - *run3-8sep-aerial-maxDLUL.csv*
