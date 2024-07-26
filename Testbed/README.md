@@ -101,10 +101,13 @@ This task is only performed in the DU
      - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
      - Replace `<output_folder>` with the full path you would like the pcap file will be stored and then the csv files to be generated
 3. **Output**:
-   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_test_number.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage. Each row in the csv file represent a PTP packet with the following structure:
+   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_test_number.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage.
+   - Each row in the csv file represent a PTP packet with the following structure:
    ```
    ['Time', 'Source', 'Destination', 'Protocol', 'Length', 'SequenceID', 'MessageType']
    ```
+4. **Customization**:
+   - Adjust the parameters according to your environment, the duration of your experiment and tests, the folder where you want to store your data.
 
 ### Attacks Data Collection
 #### Requirements
