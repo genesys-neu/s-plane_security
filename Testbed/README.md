@@ -155,11 +155,11 @@ This task is performed using both the DU and the Attacker
        sudo python3 automated_test_attacker.py [-if <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-i <DU_ip_address>] [-o <output_folder>]
        ```
        All arguments are mandatory.
-         - Replace `<interface>` with the interface you want to use to sniff the traffic
-         - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
-         - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
-         - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
-         - Replace `<output_folder>` with the folder you want your output to be stored
+       - Replace `<interface>` with the interface you want to use to sniff the traffic
+       - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
+       - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+       - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
+       - Replace `<output_folder>` with the folder you want your output to be stored
 4. **Output**
 5. **Customization**
 #### Example
