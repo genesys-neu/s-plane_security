@@ -171,7 +171,17 @@ This task is performed using both the DU and the Attacker
    ```
    Files with the same indexes in the DU and the Attacker cover the same test in the same timeframe. For example `test_attacker_1.csv` and `test_DU_1.csv` represent the same synchronized test in the same moment. All PTP packets stored in the `test_DU_1.csv` contain the benign traffic along with the malicious packets crafted by the attacker during the attacks logged in `test_attacker_1.csv`
 6. **Customization**
+- Adjust the parameters according to your environment, the duration of your experiment and tests and the folders you want to save the logs
 #### Example
+   ```
+   sudo python3 automated_data_collection.py -if enp4s0 -de 1800 -dt 300 -o ../DULogs/
+   ```
+At the DU side, this command starts the benign data collection, sniffing at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `DULogs` in the same folder of `AutomatedScripts` folder where the scripts are
+ ```
+sudo python3 automated_test_attacker.py -i 192.168.40.1 -if enp4s0 -de 1800 -dt 300 -o ../DULogs/
+ ```
+At the DU side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are
+
 
 ### Dataset Generation
 #### Requirements
