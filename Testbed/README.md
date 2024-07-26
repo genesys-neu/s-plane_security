@@ -107,6 +107,11 @@ This task is only performed in the DU
    ```
 4. **Customization**:
    - Adjust the parameters according to your environment, the duration of your experiment and tests.
+5. **Example**
+   ```
+   sudo python3 automated_benign_data_collection.py -i enp4s0 -de 1800 -dt 300
+   ```
+   This command starts the benign data collection, sniffing at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes)
 
 ### Attacks Data Collection
 #### Requirements
