@@ -78,13 +78,33 @@ sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800 -r
 This command starts the script in the RU, it connects to the DU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
 ### Benign Data Collection
-This task is only performed by the DU. It is supposed that the Background Traffic mentioned above is running. 
+For this task it is supposed that the Background Traffic mentioned above is running. The script consists on several tests of customizable duration. During each test the script sniffs with `tcpdump` the chosen interfaces and saves the pcap file. After that, the pcap file is converted to a csv file using the script `pcap_csv_converter.py` in the `ProcessData` folder, filtering all PTP packets and keeping only the relevant information.
 
 #### Requirements
 - Python3
   
 #### Usage
+This task is only performed in the DU
 
+1. **Installation**:
+   - Ensure that Python 3.x is installed on your system.
+
+2. **Running the Script**:
+   - Navigate to the directory containing the script `automated_benign_data_collection.py`.
+   - Run the script with the following command:
+   ```
+   sudo python3 automated_benign_data_collection.py [-i <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-o <output_folder>]
+   ```
+   All arguments are mandatory.
+     - Replace `<interface>` with the interface you want to use to sniff the traffic
+     - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
+     - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+     - Replace `<output_folder>` with the full path you would like the pcap file will be stored and then the csv files to be generated
+3. **Output**:
+   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_test_number.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage. Each row in the csv file represent a PTP packet with the following structure:
+   ```
+   ['Time', 'Source', 'Destination', 'Protocol', 'Length', 'SequenceID', 'MessageType']
+   ```
 
 ### Attacks Data Collection
 #### Requirements
