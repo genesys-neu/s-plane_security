@@ -93,21 +93,20 @@ This task is only performed in the DU
    - Navigate to the directory containing the script `automated_benign_data_collection.py`.
    - Run the script with the following command:
    ```
-   sudo python3 automated_benign_data_collection.py [-i <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-o <output_folder>]
+   sudo python3 automated_benign_data_collection.py [-i <interface>] [-de <experiment_duration>] [-dt <test_duration>]
    ```
    All arguments are mandatory.
      - Replace `<interface>` with the interface you want to use to sniff the traffic
      - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
      - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
-     - Replace `<output_folder>` with the full path you would like the pcap file will be stored and then the csv files to be generated
 3. **Output**:
-   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_test_number.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage.
+   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_test_number.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage. All files are stored in the `ProcessData` folder
    - Each row in the csv file represent a PTP packet with the following structure:
    ```
    ['Time', 'Source', 'Destination', 'Protocol', 'Length', 'SequenceID', 'MessageType']
    ```
 4. **Customization**:
-   - Adjust the parameters according to your environment, the duration of your experiment and tests, the folder where you want to store your data.
+   - Adjust the parameters according to your environment, the duration of your experiment and tests.
 
 ### Attacks Data Collection
 #### Requirements
