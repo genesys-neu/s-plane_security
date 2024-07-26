@@ -66,7 +66,7 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` script mu
 4. **Customization**:
 - Adjust the parameters according to your environment and the duration of your experiment.
 
-### Example
+#### Example
 ```
 sudo python3 automated_bg_traffic.py -i 192.168.40.51 -d 1800 
 ```
@@ -82,25 +82,31 @@ For this task it is supposed that the Background Traffic mentioned above is runn
 
 #### Requirements
 - Python3
+- Scapy 2.6.0
   
 #### Usage
 This task is only performed in the DU
 
 1. **Installation**:
    - Ensure that Python 3.x is installed on your system.
+   - Ensure that `scapy` is installed on your system. if not run the following command to install it:
+     ```
+     pip install scapy
+     ```
 
 2. **Running the Script**:
    - Navigate to the directory containing the script `automated_benign_data_collection.py`.
    - Run the script with the following command:
    ```
-   sudo python3 automated_benign_data_collection.py [-i <interface>] [-de <experiment_duration>] [-dt <test_duration>]
+   sudo python3 automated_benign_data_collection.py [-i <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-o <output_folder>]
    ```
    All arguments are mandatory.
      - Replace `<interface>` with the interface you want to use to sniff the traffic
      - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
      - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+     - Replace `<output_folder>` with the folder you want your output to be stored
 3. **Output**:
-   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_test_number.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage. All files are stored in the `ProcessData` folder
+   - Each test will generate a pcap file named `dump_test_number.pcap` and the final csv files will be named `dump_{test_number}.csv`. after generating the csv files all pcap files will be deleted for efficient memory usage. All files are stored in the selected folder
    - Each row in the csv file represent a PTP packet with the following structure:
    ```
    ['Time', 'Source', 'Destination', 'Protocol', 'Length', 'SequenceID', 'MessageType']
@@ -108,20 +114,55 @@ This task is only performed in the DU
 4. **Customization**:
    - Adjust the parameters according to your environment, the duration of your experiment and tests.
 
-### Example
+#### Example
    ```
-   sudo python3 automated_benign_data_collection.py -i enp4s0 -de 1800 -dt 300
+   sudo python3 automated_benign_data_collection.py -i enp4s0 -de 1800 -dt 300 -o ../DULogs/
    ```
-   This command starts the benign data collection, sniffing at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes)
+   This command starts the benign data collection, sniffing at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `DULogs` in the same folder of `AutomatedScripts` folder where the scripts are
 
 ### Attacks Data Collection
+This task is executed by the DU and the Attacker. First they need to synchronize their processes, to start each tests. Then the Attacker selects a random type of attack, random duration and random recovery time, starts the attack and stores the type of attack, start and end timestamps in a csv file. Each test produces one csv file named `test_attacker_{test_number}.csv` in the selected folder. the DU instead, sniff the traffic from the selected interface and produces a pcap file. The pcap file is then converte into a csv file named `test_DU_{test_number}.csv` in the selected folder
 #### Requirements
+- Python3
+- Scapy 2.6.0
 #### Usage
-1. **Installation**
+This task is performed using both the DU and the Attacker
+
+1. **Installation**:
+   - Ensure that Python 3.x is installed on your system.
+   - Ensure that `scapy` is installed on your system. if not run the following command to install it:
+     ```
+     pip install scapy
+     ```
 2. **Running the Script**
-3. **Output**
-4. **Customization**
-### Example
+   - **DU**
+     - Navigate to the directory containing the script `automated_data_collection.py`.
+     - Run the script with the following command:
+     ```
+     sudo python3 automated_data_collection.py [-if <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-i <DU_ip_address>] [-o <output_folder>]
+     ```
+     All arguments are mandatory.
+       - Replace `<interface>` with the interface you want to use to sniff the traffic
+       - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
+       - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+       - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
+       - Replace `<output_folder>` with the folder you want your output to be stored
+
+   - **Attacker**
+       - Navigate to the directory containing the script `automated_test_attacker.py`.
+       - Run the script with the following command:
+       ```
+       sudo python3 automated_test_attacker.py [-if <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-i <DU_ip_address>] [-o <output_folder>]
+       ```
+       All arguments are mandatory.
+         - Replace `<interface>` with the interface you want to use to sniff the traffic
+         - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
+         - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+         - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
+         - Replace `<output_folder>` with the folder you want your output to be stored
+4. **Output**
+5. **Customization**
+#### Example
 
 ### Dataset Generation
 #### Requirements
@@ -130,7 +171,7 @@ This task is only performed in the DU
 2. **Running the Script**
 3. **Output**
 4. **Customization**
-### Example
+#### Example
 
 ### Testing the Pipeline
 #### Requirements
@@ -139,5 +180,5 @@ This task is only performed in the DU
 2. **Running the Script**
 3. **Output**
 4. **Customization**
-### Example
+#### Example
 
