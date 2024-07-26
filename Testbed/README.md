@@ -78,7 +78,7 @@ sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800 -r
 This command starts the script in the RU, it connects to the DU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
 ### Benign Data Collection
-This task is only performed by the DU. It is supposed that the Background Traffic mentioned above is running.
+This task is only performed by the DU. It is supposed that the Background Traffic mentioned above is running. 
 
 #### Requirements
 - Python3
