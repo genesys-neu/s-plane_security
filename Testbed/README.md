@@ -161,7 +161,16 @@ This task is performed using both the DU and the Attacker
        - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
        - Replace `<output_folder>` with the folder you want your output to be stored
 4. **Output**
-5. **Customization**
+   For the DU, in the selected folder the output will be a set of csv files, each representing a test and named `test_DU_{number_test}.csv`, with all PTP packets captured within the frametime of the test in the following format:
+   ```
+   ['Time', 'Source', 'Destination', 'Protocol', 'Length', 'SequenceID', 'MessageType']
+   ```
+   For the Attacker, in the selected folder the output will be a set of csv files, each representing a test and named `test_attacker_{number_test}.csv`, with all the attacks performed within the specific timeframe of the test in the following format:
+   ```
+   ['attack_type', 'start_timestamp', 'end_timestamp']
+   ```
+   Files with the same indexes in the DU and the Attacker cover the same test in the same timeframe. For example `test_attacker_1.csv` and `test_DU_1.csv` represent the same synchronized test in the same moment. All PTP packets stored in the `test_DU_1.csv` contain the benign traffic along with the malicious packets crafted by the attacker during the attacks logged in `test_attacker_1.csv`
+6. **Customization**
 #### Example
 
 ### Dataset Generation
