@@ -180,7 +180,7 @@ At the DU side, this command starts the benign data collection, sniffing at the 
  ```
 sudo python3 automated_test_attacker.py -i 192.168.40.1 -if enp4s0 -de 1800 -dt 300 -o ../DULogs/
  ```
-At the DU side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are
+At the DU side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are.
 
 
 ### Dataset Generation
