@@ -107,7 +107,8 @@ This task is only performed in the DU
    ```
 4. **Customization**:
    - Adjust the parameters according to your environment, the duration of your experiment and tests.
-5. **Example**
+
+### Example
    ```
    sudo python3 automated_benign_data_collection.py -i enp4s0 -de 1800 -dt 300
    ```
@@ -116,12 +117,27 @@ This task is only performed in the DU
 ### Attacks Data Collection
 #### Requirements
 #### Usage
+1. **Installation**
+2. **Running the Script**
+3. **Output**
+4. **Customization**
+### Example
 
 ### Dataset Generation
 #### Requirements
 #### Usage
+1. **Installation**
+2. **Running the Script**
+3. **Output**
+4. **Customization**
+### Example
 
 ### Testing the Pipeline
 #### Requirements
 #### Usage
+1. **Installation**
+2. **Running the Script**
+3. **Output**
+4. **Customization**
+### Example
 
