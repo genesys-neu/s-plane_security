@@ -139,13 +139,12 @@ This task is performed using both the DU and the Attacker
      - Navigate to the directory containing the script `automated_data_collection.py`.
      - Run the script with the following command:
      ```
-     sudo python3 automated_data_collection.py [-if <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-i <DU_ip_address>] [-o <output_folder>]
+     sudo python3 automated_data_collection.py [-if <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-o <output_folder>]
      ```
      All arguments are mandatory.
        - Replace `<interface>` with the interface you want to use to sniff the traffic
        - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
        - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
-       - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
        - Replace `<output_folder>` with the folder you want your output to be stored
 
    - **Attacker**
@@ -178,9 +177,9 @@ This task is performed using both the DU and the Attacker
    ```
 At the DU side, this command starts the benign data collection, sniffing at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `DULogs` in the same folder of `AutomatedScripts` folder where the scripts are
  ```
-sudo python3 automated_test_attacker.py -i 192.168.40.1 -if enp4s0 -de 1800 -dt 300 -o ../DULogs/
+sudo python3 automated_test_attacker.py -i 192.168.40.1 -if enp4s0 -de 1800 -dt 300 -o ../AttackerLogs/
  ```
-At the DU side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are.
+At the Attacker side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are.
 
 
 ### Dataset Generation
@@ -228,7 +227,7 @@ This task is performed at the DU
 This command starts the generation of the dataset, it analyzes all csv files in the folder and generates the `dataset.csv` file
 
 ### Testing the Pipeline
-In order to have the best environment to test the Pipeline, we suggest to also run the Open Fronthaul Background Traffic between the DU and the RU. Other than the Background Traffic, the DU also runs the Pipeline for the detection and the Attacker performs attacks randomly.
+In order to have the best environment to test the Pipeline, we suggest to also run the Open Fronthaul Background Traffic between the DU and the RU. Other than the Background Traffic, the DU also runs the Pipeline for the detection and the Attacker performs attacks randomly. The file that launches the pipeline is `automated_test_DU.py` which initiates the synchronization with the attacker and launches the pipeline. The `pipeline.py` script is in `PipelineScript` folder. this script also imports the features of the `train_test.py` script. The `Model` floder contains the Machine Learning models the pipeline can use for the detection. The attacker works in the same way as the **Attacks Data Collection** section
 #### Requirements
 - Python3
 - Scapy
@@ -256,7 +255,51 @@ In order to have the best environment to test the Pipeline, we suggest to also r
      pip install sklearn
      ```
 3. **Running the Script**
-4. **Output**
-5. **Customization**
-#### Example
+   - Run the Background Traffic as explained in **Open Fronthaul Background Traffic**
+   - **DU**
+   - Navigate to the directory containing the script `automated_test_DU.py`.
+     - Run the script with the following command:
+     ```
+     sudo python3 automated_test_DU.py [-t <type>] [-if <interface>] [-m <model>] [-o <output_folder>] [-de <experiment_duration>] [-dt <test_duration>]
+     ```
+     Not all the arguments are mandatory.
+       - (Default is `ml`) Replace <type> with `ml` if you want a ML based Pipeline, `he` if you want an heuristic approach
+       - Replace <interface> with the interface you want to sniff the traffic with
+       - In the case of a ML based Pipeline, replace <model> with the filename of the model you want to use
+       - Replace <output_folder> with the output folder you want to store your logs
+       - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
+       - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+     - **Attacker**
+       - Navigate to the directory containing the script `automated_test_attacker.py`.
+       - Run the script with the following command:
+       ```
+       sudo python3 automated_test_attacker.py [-if <interface>] [-de <experiment_duration>] [-dt <test_duration>] [-i <DU_ip_address>] [-o <output_folder>]
+       ```
+       All arguments are mandatory.
+       - Replace `<interface>` with the interface you want to use to sniff the traffic
+       - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
+       - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
+       - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
+       - Replace `<output_folder>` with the folder you want your output to be stored
 
+5. **Output**
+   In the DU we will have, in the output folder, a set of `csv` files containing the output of the prediction from the pipeline. Each entry in the file represents the prediciton of one packet and the timestamp of when the packet is received. Each files represent each single test performed during the experiment. The name of each file is `test_DU_{test_number}.csv` and an entry in this file is as follows:
+   ```
+   1720555124.1808698, tensor([[1.]], grad_fn=<RoundBackward0>
+   ```
+   For the Attacker, in the selected folder the output will be a set of csv files, each representing a test and named `test_attacker_{number_test}.csv`, with all the attacks performed within the specific timeframe of the test in the following format:
+   ```
+   ['attack_type', 'start_timestamp', 'end_timestamp']
+   ```
+   Files with the same indexes in the DU and the Attacker cover the same test in the same timeframe. For example `test_attacker_1.csv` and `test_DU_1.csv` represent the same synchronized test in the same moment. All PTP packets stored in the `test_DU_1.csv` contain the benign traffic along with the malicious packets crafted by the attacker during the attacks logged in `test_attacker_1.csv` 
+7. **Customization**
+   - Adjust the parameters according to your environment, the duration of your experiment and tests, the folders you want to save the logs, the type of prediction and which particular ML model you want to use
+#### Example
+ ```
+sudo python3 automated_test_DU.py -t ml -if enp4s0 -m best_model_no_ts_tr.1.40.pth -o ../DULogs/ -de 1800 -dt 300 
+ ```
+At the DU side, this command starts the pipeline detection with a ML approach, sniffing the traffic through the `enp4s0` interface. The ML model chosen is `best_model_no_ts_tr.1.40.pth`and the output folder to store the logs is `../DULogs/`. The duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes)
+ ```
+sudo python3 automated_test_attacker.py -i 192.168.40.1 -if enp4s0 -de 1800 -dt 300 -o ../AttackerLogs/
+ ```
+At the Attacker side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. The duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are.
