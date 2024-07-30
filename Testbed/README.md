@@ -78,7 +78,7 @@ sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800 -r
 This command starts the script in the RU, it connects to the DU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
 ### Benign Data Collection
-For this task it is supposed that the Background Traffic mentioned above is running. The script consists on several tests of customizable duration. During each test the script sniffs with `tcpdump` the chosen interfaces and saves the pcap file. After that, the pcap file is converted to a csv file using the script `pcap_csv_converter.py` in the `ProcessData` folder, filtering all PTP packets and keeping only the relevant information.
+For this task it is supposed that the Background Traffic mentioned above is running. The script consists on several tests of customizable duration. During each test the script sniffs with `tcpdump` the chosen interfaces and saves the pcap file. After that, the pcap file is converted to a csv file using the script `pcap_csv_converter.py` in the `ProcessData` folder, filtering all PTP packets and keeping only the relevant information. We suggest to create one output folder for each experiment
 
 #### Requirements
 - Python3
@@ -121,7 +121,7 @@ This task is only performed in the DU
    This command starts the benign data collection, sniffing at the interface `enp4s0`. the duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `DULogs` in the same folder of `AutomatedScripts` folder where the scripts are
 
 ### Attacks Data Collection
-This task is executed by the DU and the Attacker. First they need to synchronize their processes, to start each tests. Then the Attacker selects a random type of attack, random duration and random recovery time, starts the attack and stores the type of attack, start and end timestamps in a csv file. Each test produces one csv file named `test_attacker_{test_number}.csv` in the selected folder. the DU instead, sniff the traffic from the selected interface and produces a pcap file. The pcap file is then converte into a csv file named `test_DU_{test_number}.csv` in the selected folder
+This task is executed by the DU and the Attacker. First they need to synchronize their processes, to start each tests. Then the Attacker selects a random type of attack, random duration and random recovery time, starts the attack and stores the type of attack, start and end timestamps in a csv file. Each test produces one csv file named `test_attacker_{test_number}.csv` in the selected folder. the DU instead, sniff the traffic from the selected interface and produces a pcap file. The pcap file is then converte into a csv file named `test_DU_{test_number}.csv` in the selected folder. We suggest to create one output folder for each experiment
 #### Requirements
 - Python3
 - Scapy 2.6.0
@@ -228,11 +228,35 @@ This task is performed at the DU
 This command starts the generation of the dataset, it analyzes all csv files in the folder and generates the `dataset.csv` file
 
 ### Testing the Pipeline
+In order to have the best environment to test the Pipeline, we suggest to also run the Open Fronthaul Background Traffic between the DU and the RU. Other than the Background Traffic, the DU also runs the Pipeline for the detection and the Attacker performs attacks randomly.
 #### Requirements
+- Python3
+- Scapy
+- Torch
+- Numpy
+- Pandas
+- Sklearn
 #### Usage
 1. **Installation**
-2. **Running the Script**
-3. **Output**
-4. **Customization**
+   - Ensure that Python 3.x is installed on your system.
+   - Ensure that `scapy` is installed on your system. if not run the following command to install it:
+     ```
+     pip install scapy
+     ```
+   - Ensure that `torch` is installed on your system. if not run the following command to install it:
+     ```
+     pip install torch
+     ```
+   - Ensure that `pandas` is installed on your system. if not run the following command to install it:
+     ```
+     pip install pandas
+     ```
+   - Ensure that `sklearn` is installed on your system. if not run the following command to install it:
+     ```
+     pip install sklearn
+     ```
+3. **Running the Script**
+4. **Output**
+5. **Customization**
 #### Example
 
