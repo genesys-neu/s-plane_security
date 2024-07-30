@@ -184,13 +184,48 @@ At the DU side, this command starts synchronization with the DU at its ip addres
 
 
 ### Dataset Generation
+This section involves the last step for generating a dataset useful to traim ML models. It is composed by one script `data_gen.py` and it requires the `csv` files created either in the **Benign Data Collection** or the **Attacks Data Collection** section, which contain the `PTP` traffic captured and processed during the experiments. 
 #### Requirements
+- Python3
+- Pandas
 #### Usage
+This task is performed at the DU
 1. **Installation**
-2. **Running the Script**
-3. **Output**
-4. **Customization**
+   - Ensure that Python 3.x is installed on your system.
+   - Ensure that `pandas` is installed on your system. if not run the following command to install it:
+     ```
+     pip install pandas
+     ```
+3. **Running the Script**
+   - Navigate to the directory containing the script `data_gen.py`.
+     - Run the script with the following command:
+     ```
+     sudo python3 data_gen.py [-i <input_folder>]
+     ```
+     The argument is mandatory.
+       - Replace `<input_folder>` with the folder containing the `csv` files to process and where the final dataset will be created
+
+5. **Output**
+   The script loops over all csv files in the input folder, which are the different tests of the same experiment. Then it creates in the same folder a new file `dataset.csv`. In the output file, all processed information gathered in the several `csv` files will be appended in order to have a unique final dataset the the whole experiment. A single entry in the final dataset consists of all the previous information in the `csv` files mapped to integer, with an additional column `label` which can be either 0 or 1 in case the packet is malicious (1) or benign (0) as follow:
+   ```
+   Time,Source,Destination,Protocol,Length,SequenceID,MessageType
+   1720555124.1808698,e8:eb:d3:b1:37:e7,01:1b:19:00:00:00,PTPv2,58,43466,0
+   1720555124.180984,e8:eb:d3:b1:37:e7,01:1b:19:00:00:00,PTPv2,58,43466,8
+   ```
+   is the initial entry
+   ```
+   Source,Destination,Length,SequenceID,MessageType,Time Interval,Label
+   0,2,58,43466,0,0.0,0
+   0,2,58,43466,8,0.00011420249938964844,0
+   ```
+   entry processed in the final dataset
+6. **Customization**
+- Adjust the parameters according to the folder containing the files you want to process
 #### Example
+ ```
+   sudo python3 data_gen.py -i ../DULogs/
+```
+This command starts the generation of the dataset, it analyzes all csv files in the folder and generates the `dataset.csv` file
 
 ### Testing the Pipeline
 #### Requirements
