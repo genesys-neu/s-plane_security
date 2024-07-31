@@ -47,7 +47,7 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` script mu
    - Navigate to the directory containing the script `automated_bg_traffic.py`.
    - in the DU, run the script with the following command:
      ```
-     sudo python3 autpmated_bg_traffic.py [-i <ip_destination>] [-d <duration>]
+     sudo python3 autpmated_bg_traffic.py [-d <duration>]
      ```
      - in the RU, run the script with the following command:
      ```
