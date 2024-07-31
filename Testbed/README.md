@@ -145,6 +145,7 @@ This task is performed using both the DU and the Attacker
        - Replace `<experiment_duration>` with the desired duration of the whole experiment. This value should be a multiple of the `<test_duration>`
        - Replace `<test_duration>` with the desired duration of each single test. This value should be a divisor of the `<experiment_duration>`
        - Replace `<output_folder>` with the folder you want your output to be stored
+     The ranges of values for the attack duration is randomly chosen between 10 and 30 seconds while the recovery period between attacks is randomly chosen between 30 and 60 seconds. We suggest to select a `<duration_test>` at last higher than the maximum of duration+recovery (90 seconds)
 
    - **Attacker**
        - Navigate to the directory containing the script `automated_test_attacker.py`.
