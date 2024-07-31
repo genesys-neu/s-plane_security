@@ -199,10 +199,11 @@ This task is performed at the DU
    - Navigate to the directory containing the script `data_gen.py`.
      - Run the script with the following command:
      ```
-     sudo python3 data_gen.py [-i <input_folder>]
+     sudo python3 data_gen.py [-i <input_folder>] [-a <attacker_MAC>]
      ```
      The argument is mandatory.
        - Replace `<input_folder>` with the folder containing the `csv` files to process and where the final dataset will be created
+       - Replace `<attacker_MAC>` with the MAC address of the attacker, used to label offline the packets as malicious
 
 5. **Output**
    The script loops over all csv files in the input folder, which are the different tests of the same experiment. Then it creates in the same folder a new file `dataset.csv`. In the output file, all processed information gathered in the several `csv` files will be appended in order to have a unique final dataset the the whole experiment. A single entry in the final dataset consists of all the previous information in the `csv` files mapped to integer, with an additional column `label` which can be either 0 or 1 in case the packet is malicious (1) or benign (0) as follow:
@@ -222,9 +223,9 @@ This task is performed at the DU
 - Adjust the parameters according to the folder containing the files you want to process
 #### Example
  ```
-   sudo python3 data_gen.py -i ../DULogs/
+   sudo python3 data_gen.py -i ../DULogs/ -a 68:05:ca:2e:59:73
 ```
-This command starts the generation of the dataset, it analyzes all csv files in the folder and generates the `dataset.csv` file
+This command starts the generation of the dataset from the folder `../DULogs/`, it analyzes all csv files in the folder and generates the `dataset.csv` file. the MAC address `68:05:ca:2e:59:73` is the attacker's address. 
 
 ### Testing the Pipeline
 In order to have the best environment to test the Pipeline, we suggest to also run the Open Fronthaul Background Traffic between the DU and the RU. Other than the Background Traffic, the DU also runs the Pipeline for the detection and the Attacker performs attacks randomly. The file that launches the pipeline is `automated_test_DU.py` which initiates the synchronization with the attacker and launches the pipeline. The `pipeline.py` script is in `PipelineScript` folder. this script also imports the features of the `train_test.py` script. The `Model` floder contains the Machine Learning models the pipeline can use for the detection. The attacker works in the same way as the **Attacks Data Collection** section. It is fundamental that the Background Traffic, PTP protocol, the attacks and the pipeline run in the same subnet
