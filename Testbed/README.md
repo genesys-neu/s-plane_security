@@ -285,6 +285,7 @@ In order to have the best environment to test the Pipeline, we suggest to also r
 5. **Output**
    In the DU we will have, in the output folder, a set of `csv` files containing the output of the prediction from the pipeline. Each entry in the file represents the prediciton of one packet and the timestamp of when the packet is received. Each files represent each single test performed during the experiment. The name of each file is `test_DU_{test_number}.csv` and an entry in this file is as follows:
    ```
+   ['timestamp', 'label']
    1720555124.1808698, tensor([[1.]], grad_fn=<RoundBackward0>
    ```
    For the Attacker, in the selected folder the output will be a set of csv files, each representing a test and named `test_attacker_{number_test}.csv`, with all the attacks performed within the specific timeframe of the test in the following format:
