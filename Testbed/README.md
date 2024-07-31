@@ -51,12 +51,11 @@ For both the DU and RU the `OFH_tgen.py` and `automated_bg_traffic.py` script mu
      ```
      - in the RU, run the script with the following command:
      ```
-     sudo python3 autpmated_bg_traffic.py [-i <ip_destination>] [-d <duration>] [-r]
+     sudo python3 autpmated_bg_traffic.py [-i <ip_destination>] [-d <duration>]
      ```
      All arguments are mandatory.
      - Replace `<ip_destination>` with the ip of the other machine you want to exchange traffic with.
      - Replace `<duration>` with the duration of the experiment in seconds, it must be the same for both DU and RU.
-     - `-r` is the flag that specifies that the specific device is the RU
 
 3. **Output**:
    - The script will first establish connection between DU and RU.
@@ -73,7 +72,7 @@ sudo python3 automated_bg_traffic.py -i 192.168.40.51 -d 1800
 This command starts the script in the DU, it connects to the RU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
 ```
-sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800 -r
+sudo python3 automated_bg_traffic.py -i 192.168.40.1 -d 1800
 ```
 This command starts the script in the RU, it connects to the DU at the given address and sets the duration experiment for 1800 seconds (30 minutes) .
 
