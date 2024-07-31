@@ -227,7 +227,7 @@ This task is performed at the DU
 This command starts the generation of the dataset, it analyzes all csv files in the folder and generates the `dataset.csv` file
 
 ### Testing the Pipeline
-In order to have the best environment to test the Pipeline, we suggest to also run the Open Fronthaul Background Traffic between the DU and the RU. Other than the Background Traffic, the DU also runs the Pipeline for the detection and the Attacker performs attacks randomly. The file that launches the pipeline is `automated_test_DU.py` which initiates the synchronization with the attacker and launches the pipeline. The `pipeline.py` script is in `PipelineScript` folder. this script also imports the features of the `train_test.py` script. The `Model` floder contains the Machine Learning models the pipeline can use for the detection. The attacker works in the same way as the **Attacks Data Collection** section
+In order to have the best environment to test the Pipeline, we suggest to also run the Open Fronthaul Background Traffic between the DU and the RU. Other than the Background Traffic, the DU also runs the Pipeline for the detection and the Attacker performs attacks randomly. The file that launches the pipeline is `automated_test_DU.py` which initiates the synchronization with the attacker and launches the pipeline. The `pipeline.py` script is in `PipelineScript` folder. this script also imports the features of the `train_test.py` script. The `Model` floder contains the Machine Learning models the pipeline can use for the detection. The attacker works in the same way as the **Attacks Data Collection** section. It is fundamental that the Background Traffic, PTP protocol, the attacks and the pipeline run in the same subnet
 #### Requirements
 - Python3
 - Scapy
