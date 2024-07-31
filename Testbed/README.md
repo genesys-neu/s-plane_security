@@ -255,7 +255,7 @@ In order to have the best environment to test the Pipeline, we suggest to also r
      ```
      pip install sklearn
      ```
-3. **Running the Script**
+2. **Running the Script**
    - Run the Background Traffic as explained in **Open Fronthaul Background Traffic**
    - **DU**
    - Navigate to the directory containing the script `automated_test_DU.py`.
@@ -283,7 +283,7 @@ In order to have the best environment to test the Pipeline, we suggest to also r
        - Replace `<DU_ip_address>` with the ip address of the DU to connect with for the synchronization
        - Replace `<output_folder>` with the folder you want your output to be stored
 
-5. **Output**
+3. **Output**
    In the DU we will have, in the output folder, a set of `csv` files containing the output of the prediction from the pipeline. Each entry in the file represents the prediciton of one packet and the timestamp of when the packet is received. Each files represent each single test performed during the experiment. The name of each file is `test_DU_{test_number}.csv` and an entry in this file is as follows:
    ```
    ['timestamp', 'label']
@@ -294,7 +294,7 @@ In order to have the best environment to test the Pipeline, we suggest to also r
    ['attack_type', 'start_timestamp', 'end_timestamp']
    ```
    Files with the same indexes in the DU and the Attacker cover the same test in the same timeframe. For example `test_attacker_1.csv` and `test_DU_1.csv` represent the same synchronized test in the same moment. All PTP packets stored in the `test_DU_1.csv` contain the benign traffic along with the malicious packets crafted by the attacker during the attacks logged in `test_attacker_1.csv` 
-7. **Customization**
+4. **Customization**
    - Adjust the parameters according to your environment, the duration of your experiment and tests, the folders you want to save the logs, the type of prediction and which particular ML model you want to use
 #### Example
  ```
@@ -305,3 +305,67 @@ At the DU side, this command starts the pipeline detection with a ML approach, s
 sudo python3 automated_test_attacker.py -i 192.168.40.1 -if enp4s0 -de 1800 -dt 300 -o ../AttackerLogs/
  ```
 At the Attacker side, this command starts synchronization with the DU at its ip address `192.168.40.1` and starts the attacks, sniffing and sending malicious packets at the interface `enp4s0`. The duration of the experiment is 1800 seconds (30 minutes) and the duration of each test is 300 seconds (5 minutes). Output files will be stored in the `AttackerLogs` in the same folder of `AutomatedScripts` folder where the scripts are.
+
+### Run the Attacks Independently
+Following these steps it is possible to run the attacks without connecting to the DU, the only node involved is the Attacker. This is a fast solution if you want to test a specific attack and customize all parameters such as the type of attack, the duration and recovery time and the output to store the logs
+#### Requirements
+1. Python3
+2. Scapy
+
+#### Usage
+The only requirement is having PTP running on the same subnet but Open Fronthaul Background Traffic can also be included.
+1. **Installation**
+   - Ensure that Python 3.x is installed on your system.
+   - Ensure that `scapy` is installed on your system. if not run the following command to install it:
+     ```
+     pip install scapy
+     ```
+2. **Running the Script**
+  - **Spoofing Attack**
+  - Navigate to the directory containing the script `Announce_Attack.py`.
+     - Run the script with the following command:
+     ```
+     sudo python3 Announce_Attack.py [-s <sleep>] [-d <duration>] [-i <interface>] [-l <logs>]
+     ```
+    All the arguments are mandatory:
+    - Replace `<sleep>` with the recovery time at the end of the attack in seconds
+    - Replace `<duration>` with the duration of the attack in seconds
+    - Replace `<interface>` with the interface that sniffs the PTP traffic and launches the attack
+    - Replace `<logs>` with the filename that will contains the information about the type of attack, the start and end timestamp. If you run independent attacks multiple times using the same filename, all logs will be appended to the given file
+  - **Replay Attack**
+  - Navigate to the directory containing the script `Sync_FollowUp_Attack.py`.
+     - Run the script with the following command:
+     ```
+     sudo python3 Sync_FollowUp_Attack.py [-s <sleep>] [-d <duration>] [-i <interface>] [-l <logs>]
+     ```
+    All the arguments are mandatory:
+    - Replace `<sleep>` with the recovery time at the end of the attack in seconds
+    - Replace `<duration>` with the duration of the attack in seconds
+    - Replace `<interface>` with the interface that sniffs the PTP traffic and launches the attack
+    - Replace `<logs>` with the filename that will contains the information about the type of attack, the start and end timestamp.
+3. **Output**
+Both the **Spoofing Attack** and the **Replay Attack** will store in a csv file the type of attack performed, the start and end timestamp as follows:
+   ```
+   ['attack_type', 'attack_start', 'attack_end']
+   Announce_Attack,1720221833.6947348,1720221849.7715673
+   ```
+If multiple indepentent attacks are performed using this command, even with different time parameters, but with the same filename as parameter, all attacks performed will be appended to the same file:
+   ```
+['attack_type', 'attack_start', 'attack_end']
+Announce_Attack,1720221833.6947348,1720221849.7715673
+Sync_FollowUp_Attack,1720221866.4150183,1720221879.5066485
+Announce_Attack,1720221891.1500766,1720221913.1715698
+
+   ```
+4. **Customization**
+Adjust the parameters according to your environment, the duration of your attack and recover, the file you want to save the logs, the type of attack you want to perform.
+
+#### Example
+   ```
+   sudo python3 Announce_Attack.py -s 90 -d 35 -i enp4s0 -l test.csv
+   ```
+This command starts the Spoofing Attack at the interface `enp4s0`. The attack lasts for 35 seconds and the recovery time is 90 seconds. The logs to `text.csv`
+```
+   sudo python3 Sync_FollowUp_Attack.py -s 90 -d 35 -i enp4s0 -l test.csv
+   ```
+This command starts the Reply Attack at the interface `enp4s0`. The attack lasts for 35 seconds and the recovery time is 90 seconds. The logs to `text.csv`
