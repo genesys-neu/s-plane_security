@@ -1,6 +1,7 @@
 import socket
 import time
 import subprocess
+import argparse
 
 def establish_connection():
     # Start listening for connection
@@ -18,6 +19,11 @@ def establish_connection():
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--duration", help="enter the duration of the whole experiment", type=int, required=True)
+    parser.add_argument("-i", "--ip", help="enter the destination 1p address", type=str, required=True)
+    args = parser.parse_args()
+
     # Establish connection
     server, conn = establish_connection()
     
@@ -29,7 +35,7 @@ if __name__ == "__main__":
     test_number = 0
 
     # Define experiment duration
-    duration_experiment = 57600
+    duration_experiment = args.duration
     
     # Take initial timestamp
     start_experiment = time.time()
@@ -54,10 +60,10 @@ if __name__ == "__main__":
         # If all devices are ready start test 
         if DU_ready and Attacker_ready:
             print(f'READY {test_number}')
-            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", "192.168.40.51", "-f", "./PATH TO/Cleaned_CU_plane_traces/run1-12sep-aerial-udpDL.csv"])
-            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", "192.168.40.51", "-f", "./PATH TO/Cleaned_CU_plane_traces/run1-8sep-aerial-increasingDL-withUL.csv"])
-            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", "192.168.40.51", "-f", "./PATH TO/Cleaned_CU_plane_traces/run2-8sep-aerial-increasingDL-noUL.csv"])
-            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", "192.168.40.51", "-f", "./PATH TO/Cleaned_CU_plane_traces/run3-8sep-aerial-maxDLUL.csv"])
+            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", args.ip, "-f", "./Cleaned_CU_plane_traces/run1-12sep-aerial-udpDL.csv"])
+            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", args.ip, "-f", "./Cleaned_CU_plane_traces/run1-8sep-aerial-increasingDL-withUL.csv"])
+            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", args.ip, "-f", "./Cleaned_CU_plane_traces/run2-8sep-aerial-increasingDL-noUL.csv"])
+            subprocess.run(["sudo", "python3", "OFH_tgen.py", "-i", args.ip, "-f", "./Cleaned_CU_plane_traces/run3-8sep-aerial-maxDLUL.csv"])
 
     # Close connection when experiment ends
     conn.close()

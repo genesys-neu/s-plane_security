@@ -2,13 +2,9 @@ import csv
 import subprocess
 import time
 import socket
+import argparse
+import os
 
-# Append raw to the file
-def log_lable_timestamp(ptp_info, filename):
-    # Open the file in append mode
-    with open(filename, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(ptp_info)
 
 # Establish connections
 def establish_connection():
@@ -32,11 +28,22 @@ def acquire_tcpdump(filename):
     -i to specify the interface
     ether proto 0x88f7 to only filter PTP packets
     '''
-    subprocess.run(["sudo", "timeout","DURATION", 'tcpdump', '-w', filename, '-i', 'INTERFACE', "ether", "proto", "0x88f7"])
-    subprocess.run(["sudo", "python3","pcap_csv_converter.py"])
+    subprocess.run(["sudo", "timeout", str(args.duration_test), 'tcpdump', '-w', filename, '-i', args.interface, "ether", "proto", "0x88f7"])
+    subprocess.run(["sudo", "python3","../ProcessData/pcap_csv_converter.py", '-f', args.output])
 
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-if", "--interface", help="enter the interface", type=str, required=True)
+    parser.add_argument("-de", "--duration_experiment", help="enter the duration of the whole experiment", type=int, required=True)
+    parser.add_argument("-dt", "--duration_test", help="enter the duration of each test", type=int, required=True)
+    parser.add_argument("-o", "--output", help="enter the folder where to store outputs", type=str, required=True)
+    args = parser.parse_args()
+    
+    # Creates output folder if does not exist
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
     initial_time = None
 
      # Establish connection
@@ -47,7 +54,7 @@ if __name__ == "__main__":
     Attacker_ready = False
     
     # Define experiment duration
-    duration_experiment = 57600
+    duration_experiment = args.duration_experiment
     
     # Take initial timestamp
     start_experiment = time.time()
@@ -76,7 +83,7 @@ if __name__ == "__main__":
             print(f'READY {i}')
 
             # Define filename 
-            filename = f'./PATH TO PREFERRED FOLDER/FILENAME_number{i}.pcap'
+            filename = f'{args.output}test_DU_{i}.pcap'
            
             print('Capturing started')
 

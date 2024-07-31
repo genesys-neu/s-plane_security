@@ -155,7 +155,7 @@ def acquire_packet(packet_queue):
                 packet_queue.put(ptp_info)
                 initial_time = pkt.time # Update the last timestamp
     # Define the interface to sniff on
-    interface = 'INTERFACE' # Select interface you want to use
+    interface = args.interface # Select interface you want to use
     # Create partial function to include new parameters
     process_ptp_packet_with_param = partial(process_ptp_packet, packet_queue=packet_queue)
     time = 5 # default time for sniffing
@@ -208,6 +208,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run packet processing with optional timeout")
     parser.add_argument("-t", "--time_out", type=str, help="Timeout in seconds")
     parser.add_argument("-l", "--logs", type=str, help="Log files where to store information")# ADDED BY SIMONE
+    parser.add_argument("-i", "--interface", type=str, help="interface where to sniff")
     args = parser.parse_args()
 
     # Set the desired_sequence_length based on the command-line argument

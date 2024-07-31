@@ -3,7 +3,8 @@ import subprocess
 import random
 import time
 import socket
-
+import argparse
+import os
 
 # Initialize CSV file with headers
 def create_log_file(filename):
@@ -14,20 +15,31 @@ def create_log_file(filename):
 
 # Starts attack
 def start_attack(attack, duration, sleep, filename):
-    subprocess.run(["sudo", "python3", attack, '-i', 'enp4s0', '-d', str(duration),'-s', str(sleep), '-l', filename])
+    subprocess.run(["sudo", "python3", attack, '-i', args.interface, '-d', str(duration),'-s', str(sleep), '-l', filename])
 
 # Establish connections
 def establish_connection():
     # Connect to server
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('10.188.57.241', 9999))  # Replace 'server_ip_address' with the actual server IP
+    client.connect((args.ip, 9999))  # Replace 'server_ip_address' with the actual server IP
     return client
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--ip", help="enter the distant end IP address", type=str, required=True)
+    parser.add_argument("-if", "--interface", help="enter the interface", type=str, required=True)
+    parser.add_argument("-de", "--duration_experiment", help="enter the duration of the whole experiment", type=int, required=True)
+    parser.add_argument("-dt", "--duration_test", help="enter the duration of each test", type=int, required=True)
+    parser.add_argument("-o", "--output", help="enter the folder where to store outputs", type=str, required=True)
+    args = parser.parse_args()
     # Establish connection
     client = establish_connection()
-   
+
+    # Creates the output folder if does not exis
+    if not os.path.exists(args.output):
+        os.makedirs(args.output) 
+    
     # Label to synchronize the devices
     DU_ready = False
     Attacker_ready = False
@@ -36,7 +48,7 @@ if __name__ == "__main__":
     test_number = 0
 
     # Define experiment duration
-    duration_experiment = 57600
+    duration_experiment = args.duration_experiment
 
     # Take initial timestamp
     start_experiment = time.time()
@@ -63,11 +75,11 @@ if __name__ == "__main__":
             print(f'READY {test_number}')
 
             # Create log files
-            filename = f'./AttackerLogs/test_attacker_{test_number}.csv'
+            filename = f'{args.output}test_attacker_{test_number}.csv'
             create_log_file(filename)
             
             # Define single test duration
-            duration_test = 300
+            duration_test = args.duration_test
 
             # Take initial timestamp per tests
             current_time = time.time()

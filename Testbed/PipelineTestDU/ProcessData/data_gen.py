@@ -4,7 +4,7 @@ import os
 import csv
 
 # Define the initial mapping for addresses and message types
-address_mapping = {}
+
 ptp_message_types = {
     0: "Sync",
     1: "Delay_Req",
@@ -23,11 +23,11 @@ reverse_ptp_message_types = {v: k for k, v in ptp_message_types.items()}
 def create_log_file(filename):
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['Time','Source', 'Destination', 'Protocol','Length', 'SequenceID','MessageType'])
+        writer.writerow(['Source', 'Destination', 'Length', 'SequenceID', 'MessageType', 'Time Interval', 'Label'])
         print(f'Created {filename}')
 
 def is_under_attack(row, seen_sync, seen_follow_up, last_seq_sync, last_seq_follow_up):
-    if row['Source'] == 2:  # When the attacker is mapped as 2, otherwise change the value
+    if row['Source'] == address_mapping[args.attacker]:  # When the mac address is the attacker's 
         return 1, seen_sync, seen_follow_up, last_seq_sync, last_seq_follow_up
     
     if row['MessageType'] == 0:  # Sync message
@@ -85,16 +85,24 @@ def process_data(input_file, output_file, seen_sync, seen_follow_up):
     print(f"Processed dataset saved to {output_file}")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input_folder", help="enter the folder where to find csv files", type=str, required=True)
+    parser.add_argument("-a", "--attacker", help="enter the MAC address of the attacker", type=str, required=True)
+    args = parser.parse_args()
+    
+    address_mapping = {args.attacker:0}
+    
     # Define output 
-    output_folder = './PATH TO OUTPUT FOLDER'
-    filename = output_folder+'FILENAME.csv'
+    filename = args.input_folder+'dataset.csv'
+    
     create_log_file(filename)
-    os.makedirs(output_folder, exist_ok=True)
-    for i in range(len(os.listdir('PATH TO DU LOGS FOLDER'))):
-        print(f'file number {i}')
-        # Load the CSV files
-        du = f'PATH TO DU LOGS FOLDER/FILENAME_number{i}.csv'
-        # Initialize tracking sets and variables for sync and follow-up messages
-        seen_sync = set()
-        seen_follow_up = set()
-        process_data(du, filename, seen_sync, seen_follow_up)
+    files = [f for f in os.listdir(args.input_folder) if f.endswith('.csv') and not f.endswith('dataset.csv')] # checks csv files and discards the new created final dataset
+    for i, file in enumerate(files):
+            print(f'file number {i}')
+            # Load the CSV files
+            du = os.path.join(args.input_folder, file)
+            print(du)  # This prints the path to the CSV file
+            # Initialize tracking sets and variables for sync and follow-up messages
+            seen_sync = set()
+            seen_follow_up = set()
+            process_data(du, filename, seen_sync, seen_follow_up)

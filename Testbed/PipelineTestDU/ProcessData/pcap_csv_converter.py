@@ -2,6 +2,7 @@ from scapy.all import PcapReader, IP, Ether
 import csv
 import fnmatch
 import os
+import argparse
 
 ptp_message_types = {0: "Sync", 
                      1: "Delay_Req",
@@ -72,15 +73,17 @@ def pcap_to_csv(input_file, output_file, chunk_size=1000):
 
 # Example usage
 if __name__ == '__main__':
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--folder", help="enter the folder where to find pcap files and store csv files", type=str, required=True)
+    args = parser.parse_args()
     recursion = True
     print('STARTING')
-    for root, dirnames, filenames in os.walk('./'):
+    for root, dirnames, filenames in os.walk(args.folder):
         for filename in fnmatch.filter(filenames, '*.pcap'):
             path = os.path.join(root, filename)
             path = os.path.splitext(path)[0]
             print(path)
-    for root, dirnames, filenames in os.walk('./'):
+    for root, dirnames, filenames in os.walk(args.folder):
         for filename in fnmatch.filter(filenames, '*.pcap'):
             path = os.path.join(root, filename)
             path = os.path.splitext(path)[0]
@@ -94,7 +97,5 @@ if __name__ == '__main__':
             else:
                 print("CSV EXISTS FOR "+path)
 
-        if recursion == False:
-            os.system('python3 pcap_csv_converter.py')
 
 

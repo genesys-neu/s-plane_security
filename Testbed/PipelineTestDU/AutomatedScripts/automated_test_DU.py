@@ -3,6 +3,7 @@ import subprocess
 import time
 import socket
 import argparse
+import os
 
 # Create log file
 def create_log_file(filename):
@@ -20,9 +21,9 @@ def start_capturing(timeout, filename, type_detection):
     -l filename to store the logs
     '''
     if type_detection == 'ml':
-        subprocess.run(["sudo", "python3", './PATH TO/pipeline.py', '-m', './PATH TO/./best_model_t7jul_lat_ext_9jul1_2_3_4_5_6_tr.3.40.pth', '-t', str(timeout), '-l', filename])
+        subprocess.run(["sudo", "python3", '../PipelineScripts/pipeline.py', '-m', '../PipelineScripts/Models/'+args.model, '-t', str(timeout), '-l', filename, '-i', args.interface])
     elif type_detection == 'he':
-        subprocess.run(["sudo", "python3", './PATH TO/pipeline_heuristic.py', '-t', str(timeout), '-l', filename])
+        subprocess.run(["sudo", "python3", '../PipelineScripts/pipeline_heuristic.py', '-t', str(timeout), '-l', filename, '-i', args.interface])
 
 # Establish connections
 def establish_connection():
@@ -45,7 +46,16 @@ if __name__ == "__main__":
     # Parse command-line arguments to choose the type of pipeline (default is machine learning)
     parser = argparse.ArgumentParser(description="Run packet processing with optional timeout")
     parser.add_argument("-t", "--type", type=str, help="Type of detection", default='ml')
-    args = parser.parse_args()  
+    parser.add_argument("-if", "--interface", type=str, help="interface where to sniff")
+    parser.add_argument("-m", "--model", type=str, help="model to use in the pipeline")
+    parser.add_argument("-o", "--output", type=str, help="output folder")
+    parser.add_argument("-de", "--duration_experiment", type=str, help="duration of the whole experiment")
+    parser.add_argument("-dt", "--duration_test", type=str, help="duration of the single test")
+    args = parser.parse_args()
+
+    # Creates output folder if does not exist
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)  
     type_detection = args.type
 
     # Establish connection
@@ -59,13 +69,13 @@ if __name__ == "__main__":
     test_number = 0
 
     # Define experiment duration
-    duration_experiment = 1800
+    duration_experiment = args.duration_experiment
     
     # Take initial timestamp
     start_experiment = time.time()
 
     # Start of experiment 
-    while time.time()-start_experiment < duration_experiment:
+    while time.time()-start_experiment < int(duration_experiment):
 
         # Send READY message to connected devices
         conn.sendall(f'READY TEST {test_number}'.encode())
@@ -86,11 +96,11 @@ if __name__ == "__main__":
             print(f'READY {test_number}')
 
             # Create log files
-            filename = f'./DULogs/test_DU_{test_number}.csv'
+            filename = f'{args.output}/test_DU_{test_number}.csv'
             create_log_file(filename)
 
             # Define single test duration
-            duration_test = 300
+            duration_test = args.duration_test
 
             print(f'START TEST NUMBER {test_number}')
 
