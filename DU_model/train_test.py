@@ -12,9 +12,35 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 import math
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import recall_score
 
 
 np.random.seed(17)
+
+
+class SklearnMLModel:
+    def __init__(self, model):
+        self.model = model
+
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
+
+    def predict(self, X):
+        return self.model.predict(X)
+
+    def predict_proba(self, X):
+        if hasattr(self.model, "predict_proba"):
+            return self.model.predict_proba(X)[:, 1]
+        else:
+            # For models like SVM that do not support predict_proba by default
+            return self.model.decision_function(X)
 
 
 class LSTMClassifier(nn.Module):
@@ -192,7 +218,8 @@ if __name__ == "__main__":
                         help="file containing all the training data")
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
-    parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
+    parser.add_argument("-m", "--model", default='Transformer',
+                        help="Choose Transformer, LSTM, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, RandomForest")
     parser.add_argument("-s", "--slice_length", type=int, default=16, help="Slice length for the Transformer")
 
     args = parser.parse_args()
@@ -220,171 +247,209 @@ if __name__ == "__main__":
     output_size = 1
     num_epochs = 100
 
-    # Instantiate the model and move it to the GPU
+    # Instantiate the model based on the user's choice
     if model_type == 'LSTM':
         print('Using LSTM')
         model = LSTMClassifier(input_size, hidden_size).to(device)
-    else:
+    elif model_type == 'Transformer':
         print(f'Using Transformer with slice size {slice_length}')
         model = TransformerNN(slice_len=slice_length).to(device)
+    elif model_type == 'LogisticRegression':
+        print('Using Logistic Regression')
+        model = SklearnMLModel(LogisticRegression())
+    elif model_type == 'KNN':
+        print('Using k-Nearest Neighbors')
+        model = SklearnMLModel(KNeighborsClassifier())
+    elif model_type == 'DecisionTree':
+        print('Using Decision Tree')
+        model = SklearnMLModel(DecisionTreeClassifier())
+    elif model_type == 'SVM':
+        print('Using Support Vector Machine')
+        model = SklearnMLModel(SVC(probability=True))
+    elif model_type == 'NaiveBayes':
+        print('Using Naive Bayes')
+        model = SklearnMLModel(GaussianNB())
+    elif model_type == 'RandomForest':
+        print('Using Random Forest')
+        model = SklearnMLModel(RandomForestClassifier())
+    else:
+        raise ValueError(
+            "Invalid model type chosen. Please choose from Transformer, LSTM, LogisticRegression, KNN, DecisionTree, SVM, or NaiveBayes.")
 
-    # Define the loss function (Binary Cross-Entropy Loss)
-    # criterion = nn.BCELoss()
-    # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
-    criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
+    # Handle the training and evaluation for sklearn models
+    if isinstance(model, SklearnMLModel):
+        train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
 
-    # Define optimizer (Adam) and learning rate scheduler
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        # Train the model
+        model.train(train_dataset, train_label)
 
-    best_val_loss = float('inf')  # Initialize the best validation loss
-    patience = 20  # Number of epochs to wait for improvement
-    counter = 0  # Counter for patience
+        # Evaluate the model
+        predictions = model.predict(test_dataset)
+        test_accuracy = accuracy_score(test_label, predictions)
+        test_recall = recall_score(test_label, predictions, average='binary')
+        print(f'Test Accuracy for {model_type}: {test_accuracy:.4f}')
+        print(f"Recall: {recall:.4f}")
 
-    # Training loop with evaluation on the validation set
-    for epoch in range(num_epochs):
-        # Randomly select batch size between 10 and 40
-        # reset the random seed?
-        # np.random.seed()
-        if model_type == 'LSTM':
-            batch_size = np.random.randint(10, 41)
-        else:
-            batch_size = 1000
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    else:
 
-        # Training phase
-        model.train()
-        running_loss = 0.0
-        running_accuracy = 0.0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
+        # Define the loss function (Binary Cross-Entropy Loss)
+        # criterion = nn.BCELoss()
+        # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
+        criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
 
-            try:
-                # Move inputs and labels to the GPU
-                # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
-                inputs, labels = inputs.to(device), labels.to(device)
-                # Forward pass
-                outputs = model(inputs)
-                # print(f'Output shape: {outputs.shape}')
-                # print(f'Outputs: {outputs}')
+        # Define optimizer (Adam) and learning rate scheduler
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-                # Round the predictions to 0 or 1
-                predicted = torch.round(outputs)
-                predicted = predicted.flatten()
-                # print(f'Predicted shape: {predicted.shape}')
-                # print(f'Predicted: {predicted}')
-                # Adjust shapes for the last batch
+        best_val_loss = float('inf')  # Initialize the best validation loss
+        patience = 20  # Number of epochs to wait for improvement
+        counter = 0  # Counter for patience
 
-                outputs = outputs.flatten()  # Flatten the output tensor
-                # labels = labels.float().view(-1)  # Flatten the label tensor
-                # Use raw probabilities in the loss calculation
-                loss = criterion(outputs, labels.float())
-                running_accuracy += accuracy(predicted, labels)
+        # Training loop with evaluation on the validation set
+        for epoch in range(num_epochs):
+            # Randomly select batch size between 10 and 40
+            # reset the random seed?
+            # np.random.seed()
+            if model_type == 'LSTM':
+                batch_size = np.random.randint(10, 41)
+            else:
+                batch_size = 1000
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-                # Use rounded predictions in the loss calculation
-                # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
-                loss.backward()
-                optimizer.step()
+            # Training phase
+            model.train()
+            running_loss = 0.0
+            running_accuracy = 0.0
+            for inputs, labels in train_loader:
+                optimizer.zero_grad()
 
-                running_loss += loss.item()
-
-            except ValueError as e:
-                print(f'Error occurred in training epoch {epoch +1}: {e}')
-                continue
-
-        # Validation phase
-        model.eval()  # Set model to evaluation mode
-        val_loss = 0.0
-        val_accuracy = 0.0
-        with torch.no_grad():  # Disable gradient calculation during validation
-            for inputs, labels in val_loader:
                 try:
+                    # Move inputs and labels to the GPU
+                    # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                     inputs, labels = inputs.to(device), labels.to(device)
+                    # Forward pass
                     outputs = model(inputs)
+                    # print(f'Output shape: {outputs.shape}')
+                    # print(f'Outputs: {outputs}')
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     predicted = predicted.flatten()
+                    # print(f'Predicted shape: {predicted.shape}')
+                    # print(f'Predicted: {predicted}')
+                    # Adjust shapes for the last batch
 
-                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
                     outputs = outputs.flatten()  # Flatten the output tensor
                     # labels = labels.float().view(-1)  # Flatten the label tensor
-                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
-                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                    # Use raw probabilities in the loss calculation
                     loss = criterion(outputs, labels.float())
-                    val_accuracy += accuracy(predicted, labels)
+                    running_accuracy += accuracy(predicted, labels)
 
-                    val_loss += loss.item()
+                    # Use rounded predictions in the loss calculation
+                    # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
+                    loss.backward()
+                    optimizer.step()
+
+                    running_loss += loss.item()
 
                 except ValueError as e:
-                    print(f'Error occurred in validation epoch {epoch + 1}: {e}')
+                    print(f'Error occurred in training epoch {epoch +1}: {e}')
                     continue
 
-        # Adjust learning rate
-        scheduler.step()
+            # Validation phase
+            model.eval()  # Set model to evaluation mode
+            val_loss = 0.0
+            val_accuracy = 0.0
+            with torch.no_grad():  # Disable gradient calculation during validation
+                for inputs, labels in val_loader:
+                    try:
+                        inputs, labels = inputs.to(device), labels.to(device)
+                        outputs = model(inputs)
 
-        # Print average loss and accuracy for each epoch
-        print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
-              f'Training Loss: {running_loss / len(train_loader):.4f}, '
-              f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
-              f'Validation Loss: {val_loss / len(val_loader):.4f}, '
-              f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
-        training_metrics['epochs'].append(epoch + 1)
-        training_metrics['training_loss'].append(running_loss / len(train_loader))
-        training_metrics['training_accuracy'].append(running_accuracy / len(train_loader))
-        training_metrics['validation_loss'].append(val_loss / len(val_loader))
-        training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
+                        # Round the predictions to 0 or 1
+                        predicted = torch.round(outputs)
+                        predicted = predicted.flatten()
 
-        # Save model if validation loss decreases
-        if (val_loss / len(val_loader)) < best_val_loss:
-            best_val_loss = (val_loss / len(val_loader))
-            # print(f'Best validation loss updated: {best_val_loss}')
-            torch.save(model.state_dict(), f'best_model_{t_v}.pth')
-            counter = 0  # Reset counter if there's improvement
-        else:
-            # Increment counter if there's no improvement
-            counter += 1
-        # print(f'Counter: {counter}')
-        # Check early stopping condition
-        if counter >= patience:
-            print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
-            break
+                        # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                        outputs = outputs.flatten()  # Flatten the output tensor
+                        # labels = labels.float().view(-1)  # Flatten the label tensor
+                        # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                        # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                        loss = criterion(outputs, labels.float())
+                        val_accuracy += accuracy(predicted, labels)
 
-    # Test phase
-    model.eval()  # Set model to evaluation mode
-    batch_size = 1000
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+                        val_loss += loss.item()
 
-    test_predictions = []
-    test_targets = []
+                    except ValueError as e:
+                        print(f'Error occurred in validation epoch {epoch + 1}: {e}')
+                        continue
 
-    with torch.no_grad():  # Disable gradient calculation during testing
-        for inputs, labels in test_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)
-            predicted = torch.round(outputs)  # Round the predictions to 0 or 1
-            test_predictions.extend(predicted.cpu().numpy())
-            test_targets.extend(labels.cpu().numpy())
+            # Adjust learning rate
+            scheduler.step()
 
-    # Generate confusion matrix
-    conf_matrix = confusion_matrix(test_targets, test_predictions)
-    print("Confusion Matrix:")
-    print(conf_matrix)
-    # Convert confusion matrix from NumPy array to list
-    conf_matrix_list = conf_matrix.tolist()
-    training_metrics['confusion_matrix'].append(conf_matrix_list)
+            # Print average loss and accuracy for each epoch
+            print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
+                  f'Training Loss: {running_loss / len(train_loader):.4f}, '
+                  f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
+                  f'Validation Loss: {val_loss / len(val_loader):.4f}, '
+                  f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
+            training_metrics['epochs'].append(epoch + 1)
+            training_metrics['training_loss'].append(running_loss / len(train_loader))
+            training_metrics['training_accuracy'].append(running_accuracy / len(train_loader))
+            training_metrics['validation_loss'].append(val_loss / len(val_loader))
+            training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
 
-    # Save the dictionary to a JSON file
-    with open(f'training_log_{t_v}.json', 'w') as jsonfile:
-        json.dump(training_metrics, jsonfile)
+            # Save model if validation loss decreases
+            if (val_loss / len(val_loader)) < best_val_loss:
+                best_val_loss = (val_loss / len(val_loader))
+                # print(f'Best validation loss updated: {best_val_loss}')
+                torch.save(model.state_dict(), f'best_model_{t_v}.pth')
+                counter = 0  # Reset counter if there's improvement
+            else:
+                # Increment counter if there's no improvement
+                counter += 1
+            # print(f'Counter: {counter}')
+            # Check early stopping condition
+            if counter >= patience:
+                print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
+                break
 
-    # Plot confusion matrix
-    '''
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
-    plt.xlabel('Predicted Label')
-    plt.ylabel('True Label')
-    plt.title('Confusion Matrix')
-    plt.show()
-    '''
+        # Test phase
+        model.eval()  # Set model to evaluation mode
+        batch_size = 1000
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+        test_predictions = []
+        test_targets = []
+
+        with torch.no_grad():  # Disable gradient calculation during testing
+            for inputs, labels in test_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                predicted = torch.round(outputs)  # Round the predictions to 0 or 1
+                test_predictions.extend(predicted.cpu().numpy())
+                test_targets.extend(labels.cpu().numpy())
+
+        # Generate confusion matrix
+        conf_matrix = confusion_matrix(test_targets, test_predictions)
+        print("Confusion Matrix:")
+        print(conf_matrix)
+        # Convert confusion matrix from NumPy array to list
+        conf_matrix_list = conf_matrix.tolist()
+        training_metrics['confusion_matrix'].append(conf_matrix_list)
+
+        # Save the dictionary to a JSON file
+        with open(f'training_log_{t_v}.json', 'w') as jsonfile:
+            json.dump(training_metrics, jsonfile)
+
+        # Plot confusion matrix
+        '''
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.title('Confusion Matrix')
+        plt.show()
+        '''
