@@ -26,11 +26,26 @@ np.random.seed(17)
 
 
 class SklearnMLModel:
-    def __init__(self, model):
+    def __init__(self, model, verbose=0):
         self.model = model
+        self.verbose = verbose
 
     def train(self, X_train, y_train):
+        start_time = time.time()
+
+        # Check if the model supports the verbose parameter
+        if hasattr(self.model, 'verbose'):
+            self.model.verbose = self.verbose
+
+        if self.verbose > 0:
+            print("Starting training...")
+
+        # Train the model
         self.model.fit(X_train, y_train)
+
+        if self.verbose > 0:
+            end_time = time.time()
+            print(f"Training completed in {end_time - start_time:.2f} seconds")
 
     def predict(self, X):
         return self.model.predict(X)
@@ -41,6 +56,47 @@ class SklearnMLModel:
         else:
             # For models like SVM that do not support predict_proba by default
             return self.model.decision_function(X)
+
+
+class CNNModel2D(nn.Module):
+    def __init__(self, slice_len=32, num_features=6, num_classes=2):
+        super(CNNModel2D, self).__init__()
+
+        # Define a 2D convolutional network
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(3, 3), stride=1, padding=1)
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 2))
+
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3, 3), stride=1, padding=1)
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))
+
+        # Calculate the flattened size after the convolutions and pooling
+        conv_output_size = (slice_len // 4) * (num_features // 4) * 32
+        self.fc1 = nn.Linear(conv_output_size, 64)
+        self.relu3 = nn.ReLU()
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        # Assuming input x is of shape (batch_size, slice_length, num_features)
+        # Add a channel dimension to the input tensor (batch_size, 1, slice_length, num_features)
+        x = x.unsqueeze(1)
+
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.pool1(x)
+
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.pool2(x)
+
+        # Flatten the tensor for the fully connected layers
+        x = x.view(x.size(0), -1)
+        x = self.fc1(x)
+        x = self.relu3(x)
+        x = self.fc2(x)
+
+        return x
 
 
 class LSTMClassifier(nn.Module):
@@ -219,8 +275,8 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
     parser.add_argument("-m", "--model", default='Transformer',
-                        help="Choose Transformer, LSTM, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, RandomForest")
-    parser.add_argument("-s", "--slice_length", type=int, default=16, help="Slice length for the Transformer")
+                        help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, RandomForest")
+    parser.add_argument("-s", "--slice_length", type=int, default=32, help="Slice length for the Transformer")
 
     args = parser.parse_args()
     input_file = args.file_input
@@ -254,27 +310,31 @@ if __name__ == "__main__":
     elif model_type == 'Transformer':
         print(f'Using Transformer with slice size {slice_length}')
         model = TransformerNN(slice_len=slice_length).to(device)
+    elif model_type == 'CNN':
+        print(f'Using CNN with slice size {slice_length}')
+        model = CNNModel2D(slice_len=slice_length).to(device)
     elif model_type == 'LogisticRegression':
         print('Using Logistic Regression')
-        model = SklearnMLModel(LogisticRegression())
+        model = SklearnMLModel(LogisticRegression(), verbose=1)
     elif model_type == 'KNN':
         print('Using k-Nearest Neighbors')
-        model = SklearnMLModel(KNeighborsClassifier())
+        model = SklearnMLModel(KNeighborsClassifier(), verbose=1)
     elif model_type == 'DecisionTree':
         print('Using Decision Tree')
-        model = SklearnMLModel(DecisionTreeClassifier())
+        model = SklearnMLModel(DecisionTreeClassifier(), verbose=1)
     elif model_type == 'SVM':
         print('Using Support Vector Machine')
-        model = SklearnMLModel(SVC(probability=True))
+        model = SklearnMLModel(SVC(probability=True), verbose=1)
     elif model_type == 'NaiveBayes':
         print('Using Naive Bayes')
-        model = SklearnMLModel(GaussianNB())
+        model = SklearnMLModel(GaussianNB(), verbose=1)
     elif model_type == 'RandomForest':
         print('Using Random Forest')
-        model = SklearnMLModel(RandomForestClassifier())
+        model = SklearnMLModel(RandomForestClassifier(), verbose=1)
     else:
         raise ValueError(
-            "Invalid model type chosen. Please choose from Transformer, LSTM, LogisticRegression, KNN, DecisionTree, SVM, or NaiveBayes.")
+            "Invalid model type chosen. Please choose from: "
+            "Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, or RandomForest.")
 
     # Handle the training and evaluation for sklearn models
     if isinstance(model, SklearnMLModel):
@@ -289,7 +349,7 @@ if __name__ == "__main__":
         test_accuracy = accuracy_score(test_label, predictions)
         test_recall = recall_score(test_label, predictions, average='binary')
         print(f'Test Accuracy for {model_type}: {test_accuracy:.4f}')
-        print(f"Recall: {recall:.4f}")
+        print(f"Recall: {test_recall:.4f}")
 
     else:
 
