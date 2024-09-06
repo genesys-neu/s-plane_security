@@ -60,7 +60,7 @@ class SklearnMLModel:
 
 
 class CNNModel2D(nn.Module):
-    def __init__(self, slice_len=32, num_features=6, num_classes=2):
+    def __init__(self, slice_len=32, num_features=6, num_classes=1):
         super(CNNModel2D, self).__init__()
 
         # Define a 2D convolutional network
@@ -81,22 +81,22 @@ class CNNModel2D(nn.Module):
 
     def forward(self, x):
         # Input x should already have the shape (batch_size, 1, slice_length, num_features)
-        print(f"Input to conv1 shape: {x.shape}")
+        # print(f"Input to conv1 shape: {x.shape}")
         x = self.conv1(x)   # Now x will have shape (batch_size, 16, slice_length, num_features)
-        print(f"Output of conv1 shape: {x.shape}")
+        # print(f"Output of conv1 shape: {x.shape}")
         x = self.relu1(x)
         x = self.pool1(x)
-        print(f"Output of pool1 shape: {x.shape}")
+        # print(f"Output of pool1 shape: {x.shape}")
 
         x = self.conv2(x)   # Now x should have shape (batch_size, 32, slice_length//2, num_features//2)
-        print(f"Output of conv2 shape: {x.shape}")
+        # print(f"Output of conv2 shape: {x.shape}")
         x = self.relu2(x)
         x = self.pool2(x)
-        print(f"Output of pool2 shape: {x.shape}")
+        # print(f"Output of pool2 shape: {x.shape}")
 
         # Flatten the tensor for the fully connected layers
         x = x.view(x.size(0), -1)
-        print(f"Flattened input to fc1 shape: {x.shape}")
+        # print(f"Flattened input to fc1 shape: {x.shape}")
         x = self.fc1(x)
         x = self.relu3(x)
         x = self.fc2(x)
