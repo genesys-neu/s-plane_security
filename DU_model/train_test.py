@@ -73,25 +73,30 @@ class CNNModel2D(nn.Module):
         self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))
 
         # Calculate the flattened size after the convolutions and pooling
+        # After two pooling layers, the dimensions will be reduced by a factor of 4
         conv_output_size = (slice_len // 4) * (num_features // 4) * 32
         self.fc1 = nn.Linear(conv_output_size, 64)
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
-        # The input should already have the shape (batch_size, 1, slice_length, num_features)
-        x = self.conv1(x)
-
-        x = self.conv1(x)
+        # Input x should already have the shape (batch_size, 1, slice_length, num_features)
+        print(f"Input to conv1 shape: {x.shape}")
+        x = self.conv1(x)   # Now x will have shape (batch_size, 16, slice_length, num_features)
+        print(f"Output of conv1 shape: {x.shape}")
         x = self.relu1(x)
         x = self.pool1(x)
+        print(f"Output of pool1 shape: {x.shape}")
 
-        x = self.conv2(x)
+        x = self.conv2(x)   # Now x should have shape (batch_size, 32, slice_length//2, num_features//2)
+        print(f"Output of conv2 shape: {x.shape}")
         x = self.relu2(x)
         x = self.pool2(x)
+        print(f"Output of pool2 shape: {x.shape}")
 
         # Flatten the tensor for the fully connected layers
         x = x.view(x.size(0), -1)
+        print(f"Flattened input to fc1 shape: {x.shape}")
         x = self.fc1(x)
         x = self.relu3(x)
         x = self.fc2(x)
