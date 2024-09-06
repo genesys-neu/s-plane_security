@@ -410,28 +410,28 @@ if __name__ == "__main__":
                     # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                     inputs, labels = inputs.to(device), labels.to(device)
                     # Print input dimensions before any modification
-                    print(f"Original input shape: {inputs.shape}")
+                    # print(f"Original input shape: {inputs.shape}")
 
                     # Reshape the inputs for CNN (add a channel dimension)
                     if isinstance(model, CNNModel2D):
                         inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
-                        print(f"Input shape after unsqueeze for CNN: {inputs.shape}")
+                        # print(f"Input shape after unsqueeze for CNN: {inputs.shape}")
 
                     # Forward pass
                     outputs = model(inputs)
-                    print(f'Output shape: {outputs.shape}')
+                    # print(f'Output shape: {outputs.shape}')
                     # print(f'Outputs: {outputs}')
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     predicted = predicted.flatten()
-                    print(f'Predicted shape: {predicted.shape}')
+                    # print(f'Predicted shape: {predicted.shape}')
                     # print(f'Predicted: {predicted}')
                     # Adjust shapes for the last batch
 
                     outputs = outputs.flatten()  # Flatten the output tensor
                     # labels = labels.float().view(-1)  # Flatten the label tensor
-                    print(f'Labels shape: {labels.shape}')
+                    # print(f'Labels shape: {labels.shape}')
                     # Use raw probabilities in the loss calculation
                     loss = criterion(outputs, labels.float())
                     running_accuracy += accuracy(predicted, labels)
