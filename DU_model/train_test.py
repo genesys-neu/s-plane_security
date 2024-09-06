@@ -16,7 +16,7 @@ import time
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
     parser.add_argument("-m", "--model", default='Transformer',
-                        help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, RandomForest")
+                        help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, GBC, NaiveBayes, RandomForest")
     parser.add_argument("-s", "--slice_length", type=int, default=32, help="Slice length for the Transformer")
 
     args = parser.parse_args()
@@ -327,9 +327,9 @@ if __name__ == "__main__":
     elif model_type == 'DecisionTree':
         print('Using Decision Tree')
         model = SklearnMLModel(DecisionTreeClassifier(), verbose=1)
-    elif model_type == 'SVM':
-        print('Using Support Vector Machine')
-        model = SklearnMLModel(SVC(kernel='rbf', C=1.0, gamma='scale', tol=1e-3, cache_size=1024, probability=True), verbose=1)
+    elif model_type == 'GBC':
+        print('Using Gradient Boosting Classifier')
+        model = SklearnMLModel(GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, verbose=1))
     elif model_type == 'NaiveBayes':
         print('Using Naive Bayes')
         model = SklearnMLModel(GaussianNB(), verbose=1)
