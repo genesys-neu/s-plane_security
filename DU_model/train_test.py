@@ -424,13 +424,13 @@ if __name__ == "__main__":
                     # Forward pass
                     outputs = model(inputs)
                     # print(f'Output shape: {outputs.shape}')
-                    print(f'Outputs: {outputs}')
+                    # print(f'Outputs: {outputs}')
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     predicted = predicted.flatten()
                     # print(f'Predicted shape: {predicted.shape}')
-                    print(f'Predicted: {predicted}')
+                    # print(f'Predicted: {predicted}')
                     # Adjust shapes for the last batch
 
                     outputs = outputs.flatten()  # Flatten the output tensor
