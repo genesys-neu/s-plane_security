@@ -409,6 +409,11 @@ if __name__ == "__main__":
                     # Move inputs and labels to the GPU
                     # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                     inputs, labels = inputs.to(device), labels.to(device)
+
+                    # Reshape the inputs for CNN (add a channel dimension)
+                    if isinstance(model, CNNModel2D):
+                        inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+
                     # Forward pass
                     outputs = model(inputs)
                     # print(f'Output shape: {outputs.shape}')
@@ -446,6 +451,11 @@ if __name__ == "__main__":
                 for inputs, labels in val_loader:
                     try:
                         inputs, labels = inputs.to(device), labels.to(device)
+
+                        # Reshape the inputs for CNN (add a channel dimension)
+                        if isinstance(model, CNNModel2D):
+                            inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+
                         outputs = model(inputs)
 
                         # Round the predictions to 0 or 1
@@ -497,6 +507,9 @@ if __name__ == "__main__":
                 break
 
         # Test phase
+        # Load the best model saved during training
+        model.load_state_dict(torch.load(f'best_model_{t_v}.pth'))
+
         model.eval()  # Set model to evaluation mode
         batch_size = 1000
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -506,6 +519,10 @@ if __name__ == "__main__":
 
         with torch.no_grad():  # Disable gradient calculation during testing
             for inputs, labels in test_loader:
+                # Reshape the inputs for CNN (add a channel dimension)
+                if isinstance(model, CNNModel2D):
+                    inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
                 predicted = torch.round(outputs)  # Round the predictions to 0 or 1
