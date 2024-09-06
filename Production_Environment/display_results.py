@@ -133,6 +133,10 @@ if __name__ == "__main__":
         # Iterate through the test data
         with torch.no_grad():  # Disable gradient calculation during testing
             for inputs, labels in test_loader:
+                # Reshape the inputs for CNN (add a channel dimension)
+                if isinstance(model, CNNModel2D):
+                    inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
                 predicted = torch.round(outputs)  # Round the predictions to 0 or 1

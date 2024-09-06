@@ -329,7 +329,7 @@ if __name__ == "__main__":
         model = SklearnMLModel(DecisionTreeClassifier(), verbose=1)
     elif model_type == 'SVM':
         print('Using Support Vector Machine')
-        model = SklearnMLModel(SVC(probability=True), verbose=1)
+        model = SklearnMLModel(SVC(kernel='rbf', C=1.0, gamma='scale', tol=1e-3, cache_size=1024, probability=True), verbose=1)
     elif model_type == 'NaiveBayes':
         print('Using Naive Bayes')
         model = SklearnMLModel(GaussianNB(), verbose=1)
