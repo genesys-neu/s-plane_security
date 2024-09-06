@@ -60,7 +60,7 @@ class SklearnMLModel:
 
 
 class CNNModel2D(nn.Module):
-    def __init__(self, slice_len=32, num_features=6, num_classes=1):
+    def __init__(self, slice_len=32, num_features=6, num_classes=1):  # num_classes should be 1 for binary classification
         super(CNNModel2D, self).__init__()
 
         # Define a 2D convolutional network
@@ -73,33 +73,31 @@ class CNNModel2D(nn.Module):
         self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))
 
         # Calculate the flattened size after the convolutions and pooling
-        # After two pooling layers, the dimensions will be reduced by a factor of 4
         conv_output_size = (slice_len // 4) * (num_features // 4) * 32
         self.fc1 = nn.Linear(conv_output_size, 64)
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(64, num_classes)
 
+        self.sigmoid = nn.Sigmoid()  # Add Sigmoid activation
+
     def forward(self, x):
-        # Input x should already have the shape (batch_size, 1, slice_length, num_features)
-        # print(f"Input to conv1 shape: {x.shape}")
-        x = self.conv1(x)   # Now x will have shape (batch_size, 16, slice_length, num_features)
-        # print(f"Output of conv1 shape: {x.shape}")
+        # Add a channel dimension to the input tensor
+        x = x.unsqueeze(1)
+
+        x = self.conv1(x)
         x = self.relu1(x)
         x = self.pool1(x)
-        # print(f"Output of pool1 shape: {x.shape}")
 
-        x = self.conv2(x)   # Now x should have shape (batch_size, 32, slice_length//2, num_features//2)
-        # print(f"Output of conv2 shape: {x.shape}")
+        x = self.conv2(x)
         x = self.relu2(x)
         x = self.pool2(x)
-        # print(f"Output of pool2 shape: {x.shape}")
 
         # Flatten the tensor for the fully connected layers
         x = x.view(x.size(0), -1)
-        # print(f"Flattened input to fc1 shape: {x.shape}")
         x = self.fc1(x)
         x = self.relu3(x)
         x = self.fc2(x)
+        x = self.sigmoid(x)  # Apply Sigmoid activation
 
         return x
 
@@ -423,18 +421,19 @@ if __name__ == "__main__":
 
                     # Forward pass
                     outputs = model(inputs)
-                    # print(f'Output shape: {outputs.shape}')
+                    print(f'Output shape: {outputs.shape}')
                     # print(f'Outputs: {outputs}')
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     predicted = predicted.flatten()
-                    # print(f'Predicted shape: {predicted.shape}')
+                    print(f'Predicted shape: {predicted.shape}')
                     # print(f'Predicted: {predicted}')
                     # Adjust shapes for the last batch
 
                     outputs = outputs.flatten()  # Flatten the output tensor
                     # labels = labels.float().view(-1)  # Flatten the label tensor
+                    print(f'Labels shape: {labels.shape}')
                     # Use raw probabilities in the loss calculation
                     loss = criterion(outputs, labels.float())
                     running_accuracy += accuracy(predicted, labels)
