@@ -79,6 +79,7 @@ class CNNModel2D(nn.Module):
         self.dropout = nn.Dropout(0.5)  # Dropout layer for regularization
 
         # Calculate the flattened size after the convolutions and pooling
+        # Adjust based on your input dimensions
         conv_output_size = (slice_len // 8) * (num_features // 8) * 128
         self.fc1 = nn.Linear(conv_output_size, 128)
         self.relu4 = nn.ReLU()
@@ -109,7 +110,6 @@ class CNNModel2D(nn.Module):
         x = self.sigmoid(x)  # Apply Sigmoid activation
 
         return x
-
 
 
 class LSTMClassifier(nn.Module):
