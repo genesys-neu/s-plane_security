@@ -53,7 +53,7 @@ if __name__ == "__main__":
                         help="directory containing all the models to be tested")
     parser.add_argument("-f", "--file_input", default='final_dataset.csv',
                         help="file containing all the training data")
-    parser.add_argument("-m", "--model", default='Transformer', help="Choose Transformer or LSTM")
+    parser.add_argument("-m", "--model", default='Transformer', help="Choose Transformer, CNN, or LSTM")
 
     args = parser.parse_args()
     model_dir = args.directory
@@ -99,6 +99,10 @@ if __name__ == "__main__":
                 if model_type == 'LSTM':
                     print('Using LSTM')
                     model = LSTMClassifier(input_size, hidden_size, num_layers, output_size).to(device)
+                elif model_type == "CNN":
+                    print('Using CNN')
+                    slice_length = 32
+                    model = CNNModel2D(slice_len=slice_length).to(device)
                 else:
                     # Extract slice size from the model name
                     slice_size_match = re.findall(r'\.(\d+)', model_name)
