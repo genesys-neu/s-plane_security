@@ -82,19 +82,19 @@ class CNNModel2D(nn.Module):
         self.sigmoid = nn.Sigmoid()  # Sigmoid activation for binary classification
 
     def forward(self, x):
-        print("Input shape:", x.shape)
+        # print("Input shape:", x.shape)
         x = self.conv1(x)
         x = self.relu1(x)
         x = self.pool1(x)
-        print("After conv1 + pool1:", x.shape)
+        # print("After conv1 + pool1:", x.shape)
 
         x = self.conv2(x)
         x = self.relu2(x)
         x = self.pool2(x)
-        print("After conv2 + pool2:", x.shape)
+        # print("After conv2 + pool2:", x.shape)
 
         x = x.view(x.size(0), -1)
-        print("After flattening:", x.shape)
+        # print("After flattening:", x.shape)
 
         x = self.fc1(x)
         x = self.relu3(x)
