@@ -81,8 +81,6 @@ class CNNModel2D(nn.Module):
         self.sigmoid = nn.Sigmoid()  # Add Sigmoid activation
 
     def forward(self, x):
-        # Add a channel dimension to the input tensor
-        x = x.unsqueeze(1)
 
         x = self.conv1(x)
         x = self.relu1(x)
