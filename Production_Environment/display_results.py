@@ -14,7 +14,7 @@ import re
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 
-from train_test import TransformerNN, LSTMClassifier  # Adjust the imports based on your module
+from train_test import TransformerNN, LSTMClassifier, CNNModel2D  # Adjust the imports based on your module
 
 
 class PTPDataset(Dataset):
