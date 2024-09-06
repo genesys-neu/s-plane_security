@@ -60,28 +60,33 @@ class SklearnMLModel:
 
 
 class CNNModel2D(nn.Module):
-    def __init__(self, slice_len=32, num_features=6, num_classes=1):  # num_classes should be 1 for binary classification
+    def __init__(self, slice_len=32, num_features=6, num_classes=1):
         super(CNNModel2D, self).__init__()
 
         # Define a 2D convolutional network
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(3, 3), stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), stride=1, padding=1)
         self.relu1 = nn.ReLU()
         self.pool1 = nn.MaxPool2d(kernel_size=(2, 2))
 
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3, 3), stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
         self.relu2 = nn.ReLU()
         self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))
 
-        # Calculate the flattened size after the convolutions and pooling
-        conv_output_size = (slice_len // 4) * (num_features // 4) * 32
-        self.fc1 = nn.Linear(conv_output_size, 64)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
         self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(64, num_classes)
+        self.pool3 = nn.MaxPool2d(kernel_size=(2, 2))
 
-        self.sigmoid = nn.Sigmoid()  # Add Sigmoid activation
+        self.dropout = nn.Dropout(0.5)  # Dropout layer for regularization
+
+        # Calculate the flattened size after the convolutions and pooling
+        conv_output_size = (slice_len // 8) * (num_features // 8) * 128
+        self.fc1 = nn.Linear(conv_output_size, 128)
+        self.relu4 = nn.ReLU()
+        self.fc2 = nn.Linear(128, num_classes)
+
+        self.sigmoid = nn.Sigmoid()  # Sigmoid activation for binary classification
 
     def forward(self, x):
-
         x = self.conv1(x)
         x = self.relu1(x)
         x = self.pool1(x)
@@ -90,14 +95,21 @@ class CNNModel2D(nn.Module):
         x = self.relu2(x)
         x = self.pool2(x)
 
+        x = self.conv3(x)
+        x = self.relu3(x)
+        x = self.pool3(x)
+
+        x = self.dropout(x)  # Apply dropout
+
         # Flatten the tensor for the fully connected layers
         x = x.view(x.size(0), -1)
         x = self.fc1(x)
-        x = self.relu3(x)
+        x = self.relu4(x)
         x = self.fc2(x)
         x = self.sigmoid(x)  # Apply Sigmoid activation
 
         return x
+
 
 
 class LSTMClassifier(nn.Module):
@@ -420,13 +432,13 @@ if __name__ == "__main__":
                     # Forward pass
                     outputs = model(inputs)
                     # print(f'Output shape: {outputs.shape}')
-                    # print(f'Outputs: {outputs}')
+                    print(f'Outputs: {outputs}')
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     predicted = predicted.flatten()
                     # print(f'Predicted shape: {predicted.shape}')
-                    # print(f'Predicted: {predicted}')
+                    print(f'Predicted: {predicted}')
                     # Adjust shapes for the last batch
 
                     outputs = outputs.flatten()  # Flatten the output tensor
