@@ -79,9 +79,8 @@ class CNNModel2D(nn.Module):
         self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
-        # Assuming input x is of shape (batch_size, slice_length, num_features)
-        # Add a channel dimension to the input tensor (batch_size, 1, slice_length, num_features)
-        x = x.unsqueeze(1)
+        # The input should already have the shape (batch_size, 1, slice_length, num_features)
+        x = self.conv1(x)
 
         x = self.conv1(x)
         x = self.relu1(x)
