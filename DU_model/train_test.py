@@ -339,16 +339,35 @@ if __name__ == "__main__":
 
     # Handle the training and evaluation for sklearn models
     if isinstance(model, SklearnMLModel):
-        train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
+        print("Loading training and test data...")
 
-        # Train the model
-        model.train(train_dataset, train_label)
+        # Convert DataFrames to NumPy arrays
+        X_train = train_data.to_numpy()  # Convert training data to NumPy array
+        y_train = train_label.to_numpy()  # Convert training labels to NumPy array
 
-        # Evaluate the model
-        predictions = model.predict(test_dataset)
-        test_accuracy = accuracy_score(test_label, predictions)
-        test_recall = recall_score(test_label, predictions, average='binary')
+        X_test = test_data.to_numpy()  # Convert test data to NumPy array
+        y_test = test_label.to_numpy()  # Convert test labels to NumPy array
+
+        # Print shapes and data types for debugging
+        print(f"X_train shape: {X_train.shape}")
+        print(f"y_train shape: {y_train.shape}")
+        print(f"X_test shape: {X_test.shape}")
+        print(f"y_test shape: {y_test.shape}")
+
+        print(f"Data type of X_train: {X_train.dtype}")
+        print(f"Data type of y_train: {y_train.dtype}")
+        print(f"Data type of X_test: {X_test.dtype}")
+        print(f"Data type of y_test: {y_test.dtype}")
+
+        # Train the scikit-learn model
+        print("Starting training...")
+        model.train(X_train, y_train)
+
+        # Evaluate the scikit-learn model
+        print("Starting evaluation...")
+        predictions = model.predict(X_test)
+        test_accuracy = accuracy_score(y_test, predictions)
+        test_recall = recall_score(y_test, predictions, average='binary')
         print(f'Test Accuracy for {model_type}: {test_accuracy:.4f}')
         print(f"Recall: {test_recall:.4f}")
 
