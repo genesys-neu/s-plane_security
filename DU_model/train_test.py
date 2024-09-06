@@ -409,10 +409,13 @@ if __name__ == "__main__":
                     # Move inputs and labels to the GPU
                     # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                     inputs, labels = inputs.to(device), labels.to(device)
+                    # Print input dimensions before any modification
+                    print(f"Original input shape: {inputs.shape}")
 
                     # Reshape the inputs for CNN (add a channel dimension)
                     if isinstance(model, CNNModel2D):
                         inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+                        print(f"Input shape after unsqueeze for CNN: {inputs.shape}")
 
                     # Forward pass
                     outputs = model(inputs)
