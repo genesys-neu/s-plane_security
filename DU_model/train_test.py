@@ -66,48 +66,50 @@ class CNNModel2D(nn.Module):
         # Define a 2D convolutional network
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), stride=1, padding=1)
         self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(kernel_size=(2, 2))
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 2))  # Reduces size by a factor of 2
 
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
         self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))  # Reduces size by a factor of 2
 
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
         self.relu3 = nn.ReLU()
-        self.pool3 = nn.MaxPool2d(kernel_size=(2, 2))
+        self.pool3 = nn.MaxPool2d(kernel_size=(2, 2))  # Reduces size by a factor of 2
 
-        self.dropout = nn.Dropout(0.5)  # Dropout layer for regularization
+        # Compute the size of the flattened layer
+        # After 3 pooling layers, the size will be reduced by a factor of 8
+        flattened_size = (slice_len // 8) * (num_features // 8) * 128
 
-        # Calculate the flattened size after the convolutions and pooling
-        # Adjust based on your input dimensions
-        conv_output_size = (slice_len // 8) * (num_features // 8) * 128
-        self.fc1 = nn.Linear(conv_output_size, 128)
+        self.fc1 = nn.Linear(flattened_size, 128)
         self.relu4 = nn.ReLU()
         self.fc2 = nn.Linear(128, num_classes)
 
         self.sigmoid = nn.Sigmoid()  # Sigmoid activation for binary classification
 
     def forward(self, x):
+        print("Input shape:", x.shape)
         x = self.conv1(x)
         x = self.relu1(x)
         x = self.pool1(x)
+        print("After conv1 + pool1:", x.shape)
 
         x = self.conv2(x)
         x = self.relu2(x)
         x = self.pool2(x)
+        print("After conv2 + pool2:", x.shape)
 
         x = self.conv3(x)
         x = self.relu3(x)
         x = self.pool3(x)
+        print("After conv3 + pool3:", x.shape)
 
-        x = self.dropout(x)  # Apply dropout
-
-        # Flatten the tensor for the fully connected layers
         x = x.view(x.size(0), -1)
+        print("After flattening:", x.shape)
+
         x = self.fc1(x)
         x = self.relu4(x)
         x = self.fc2(x)
-        x = self.sigmoid(x)  # Apply Sigmoid activation
+        x = self.sigmoid(x)
 
         return x
 
