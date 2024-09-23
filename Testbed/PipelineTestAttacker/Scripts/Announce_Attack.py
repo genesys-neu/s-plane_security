@@ -7,6 +7,7 @@ from AnnouncePTP import *
 from scapy.all import Ether
 import csv
 
+
 def get_mac_address(interface):
     try:
         output = os.popen('ifconfig ' + interface).read()
@@ -15,6 +16,7 @@ def get_mac_address(interface):
         return mac_address
     except Exception as e:
         return "Error:", e
+
 
 def get_clock_identity(mac_address, type_info):
     mac_address_str_no_colon = mac_address.replace(':', '')
@@ -79,8 +81,8 @@ def send_packets(packet, interface, duration=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--sleep", help="specify the sleep time", type=int)
-    parser.add_argument("-d", "--duration", help="specify the duration of the attack", type=int)
+    parser.add_argument("-s", "--sleep", help="specify the sleep time", type=int, default=0)
+    parser.add_argument("-d", "--duration", help="specify the duration of the attack", type=int, default=600)
     parser.add_argument("-i", "--interface", help="specify the interface", type=str, default='enp4s0')
     parser.add_argument("-l", "--logs", help="specify the number of attack rounds", type = str)
 

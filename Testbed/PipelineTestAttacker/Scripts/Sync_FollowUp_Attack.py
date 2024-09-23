@@ -5,6 +5,7 @@ import argparse
 from functools import partial
 import csv
 
+
 def sync_filter(packet, interface):
     if Ether in packet:
         if packet[Ether].type == 35063:
@@ -12,6 +13,7 @@ def sync_filter(packet, interface):
                 sendp(packet, iface=interface, verbose= False)
             if packet.load[0] == 8:
                 sendp(packet, iface=interface, verbose= False)
+
 
 def log_attack_start_end(attack_type, start_time, end_time, filename):
     # Open the file in append mode
