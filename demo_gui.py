@@ -159,7 +159,6 @@ def main():
         st.markdown("<h3 style='color:red;'>🔴 Attack is running...</h3>", unsafe_allow_html=True)
         if st.button("Stop Attack"):
             stop_attack()
-            is_running = False
     else:
         st.markdown("<h3 style='color:green;'>🟢 No attack running</h3>", unsafe_allow_html=True)
 
