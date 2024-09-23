@@ -12,9 +12,96 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 import math
+import time
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import recall_score
 
 
 np.random.seed(17)
+
+
+class SklearnMLModel:
+    def __init__(self, model, verbose=0):
+        self.model = model
+        self.verbose = verbose
+
+    def train(self, X_train, y_train):
+        start_time = time.time()
+
+        # Check if the model supports the verbose parameter
+        if hasattr(self.model, 'verbose'):
+            self.model.verbose = self.verbose
+
+        if self.verbose > 0:
+            print("Starting training...")
+
+        # Train the model
+        self.model.fit(X_train, y_train)
+
+        if self.verbose > 0:
+            end_time = time.time()
+            print(f"Training completed in {end_time - start_time:.2f} seconds")
+
+    def predict(self, X):
+        return self.model.predict(X)
+
+    def predict_proba(self, X):
+        if hasattr(self.model, "predict_proba"):
+            return self.model.predict_proba(X)[:, 1]
+        else:
+            # For models like SVM that do not support predict_proba by default
+            return self.model.decision_function(X)
+
+
+class CNNModel2D(nn.Module):
+    def __init__(self, slice_len=32, num_features=6, num_classes=1):
+        super(CNNModel2D, self).__init__()
+
+        # Define a simpler 2D convolutional network
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(3, 3), stride=1, padding=1)
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 2))  # Reduces size by a factor of 2
+
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3, 3), stride=1, padding=1)
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))  # Reduces size by a factor of 2
+
+        # Compute the size of the flattened layer
+        flattened_size = (slice_len // 4) * (num_features // 4) * 32
+
+        self.fc1 = nn.Linear(flattened_size, 64)
+        self.relu3 = nn.ReLU()
+        self.fc2 = nn.Linear(64, num_classes)
+
+        self.sigmoid = nn.Sigmoid()  # Sigmoid activation for binary classification
+
+    def forward(self, x):
+        # print("Input shape:", x.shape)
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.pool1(x)
+        # print("After conv1 + pool1:", x.shape)
+
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.pool2(x)
+        # print("After conv2 + pool2:", x.shape)
+
+        x = x.view(x.size(0), -1)
+        # print("After flattening:", x.shape)
+
+        x = self.fc1(x)
+        x = self.relu3(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x)
+
+        return x
 
 
 class LSTMClassifier(nn.Module):
@@ -192,8 +279,9 @@ if __name__ == "__main__":
                         help="file containing all the training data")
     parser.add_argument("-t", "--trial_version", default='',
                         help="add identifer for this trial")
-    parser.add_argument("-m", "--model", default='Transformer', help="Chose Transformer or LSTM")
-    parser.add_argument("-s", "--slice_length", type=int, default=16, help="Slice length for the Transformer")
+    parser.add_argument("-m", "--model", default='Transformer',
+                        help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, RandomForest")
+    parser.add_argument("-s", "--slice_length", type=int, default=32, help="Slice length for the Transformer")
 
     args = parser.parse_args()
     input_file = args.file_input
@@ -220,171 +308,253 @@ if __name__ == "__main__":
     output_size = 1
     num_epochs = 100
 
-    # Instantiate the model and move it to the GPU
+    # Instantiate the model based on the user's choice
     if model_type == 'LSTM':
         print('Using LSTM')
         model = LSTMClassifier(input_size, hidden_size).to(device)
-    else:
+    elif model_type == 'Transformer':
         print(f'Using Transformer with slice size {slice_length}')
         model = TransformerNN(slice_len=slice_length).to(device)
+    elif model_type == 'CNN':
+        print(f'Using CNN with slice size {slice_length}')
+        model = CNNModel2D(slice_len=slice_length).to(device)
+    elif model_type == 'LogisticRegression':
+        print('Using Logistic Regression')
+        model = SklearnMLModel(LogisticRegression(), verbose=1)
+    elif model_type == 'KNN':
+        print('Using k-Nearest Neighbors')
+        model = SklearnMLModel(KNeighborsClassifier(), verbose=1)
+    elif model_type == 'DecisionTree':
+        print('Using Decision Tree')
+        model = SklearnMLModel(DecisionTreeClassifier(), verbose=1)
+    elif model_type == 'SVM':
+        print('Using Support Vector Machine')
+        model = SklearnMLModel(SVC(probability=True), verbose=1)
+    elif model_type == 'NaiveBayes':
+        print('Using Naive Bayes')
+        model = SklearnMLModel(GaussianNB(), verbose=1)
+    elif model_type == 'RandomForest':
+        print('Using Random Forest')
+        model = SklearnMLModel(RandomForestClassifier(), verbose=1)
+    else:
+        raise ValueError(
+            "Invalid model type chosen. Please choose from: "
+            "Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, SVM, NaiveBayes, or RandomForest.")
 
-    # Define the loss function (Binary Cross-Entropy Loss)
-    # criterion = nn.BCELoss()
-    # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
-    criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
+    # Handle the training and evaluation for sklearn models
+    if isinstance(model, SklearnMLModel):
+        print("Loading training and test data...")
 
-    # Define optimizer (Adam) and learning rate scheduler
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        # Convert DataFrames to NumPy arrays
+        X_train = train_data.to_numpy()  # Convert training data to NumPy array
+        y_train = train_label.to_numpy()  # Convert training labels to NumPy array
 
-    best_val_loss = float('inf')  # Initialize the best validation loss
-    patience = 10  # Number of epochs to wait for improvement
-    counter = 0  # Counter for patience
+        X_test = test_data.to_numpy()  # Convert test data to NumPy array
+        y_test = test_label.to_numpy()  # Convert test labels to NumPy array
 
-    # Training loop with evaluation on the validation set
-    for epoch in range(num_epochs):
-        # Randomly select batch size between 10 and 40
-        # reset the random seed?
-        # np.random.seed()
-        if model_type == 'LSTM':
-            batch_size = np.random.randint(10, 41)
-        else:
-            batch_size = 1000
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        # Print shapes and data types for debugging
+        print(f"X_train shape: {X_train.shape}")
+        print(f"y_train shape: {y_train.shape}")
+        print(f"X_test shape: {X_test.shape}")
+        print(f"y_test shape: {y_test.shape}")
 
-        # Training phase
-        model.train()
-        running_loss = 0.0
-        running_accuracy = 0.0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
+        print(f"Data type of X_train: {X_train.dtype}")
+        print(f"Data type of y_train: {y_train.dtype}")
+        print(f"Data type of X_test: {X_test.dtype}")
+        print(f"Data type of y_test: {y_test.dtype}")
 
-            try:
-                # Move inputs and labels to the GPU
-                # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
-                inputs, labels = inputs.to(device), labels.to(device)
-                # Forward pass
-                outputs = model(inputs)
-                # print(f'Output shape: {outputs.shape}')
-                # print(f'Outputs: {outputs}')
+        # Train the scikit-learn model
+        print("Starting training...")
+        model.train(X_train, y_train)
 
-                # Round the predictions to 0 or 1
-                predicted = torch.round(outputs)
-                predicted = predicted.flatten()
-                # print(f'Predicted shape: {predicted.shape}')
-                # print(f'Predicted: {predicted}')
-                # Adjust shapes for the last batch
+        # Evaluate the scikit-learn model
+        print("Starting evaluation...")
+        predictions = model.predict(X_test)
+        test_accuracy = accuracy_score(y_test, predictions)
+        test_recall = recall_score(y_test, predictions, average='binary')
+        print(f'Test Accuracy for {model_type}: {test_accuracy:.4f}')
+        print(f"Recall: {test_recall:.4f}")
 
-                outputs = outputs.flatten()  # Flatten the output tensor
-                # labels = labels.float().view(-1)  # Flatten the label tensor
-                # Use raw probabilities in the loss calculation
-                loss = criterion(outputs, labels.float())
-                running_accuracy += accuracy(predicted, labels)
+    else:
 
-                # Use rounded predictions in the loss calculation
-                # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
-                loss.backward()
-                optimizer.step()
+        # Define the loss function (Binary Cross-Entropy Loss)
+        # criterion = nn.BCELoss()
+        # Define the loss function (Custom Weighted Binary Cross-Entropy Loss)
+        criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
 
-                running_loss += loss.item()
+        # Define optimizer (Adam) and learning rate scheduler
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-            except ValueError as e:
-                print(f'Error occurred in training epoch {epoch +1}: {e}')
-                continue
+        best_val_loss = float('inf')  # Initialize the best validation loss
+        patience = 20  # Number of epochs to wait for improvement
+        counter = 0  # Counter for patience
 
-        # Validation phase
-        model.eval()  # Set model to evaluation mode
-        val_loss = 0.0
-        val_accuracy = 0.0
-        with torch.no_grad():  # Disable gradient calculation during validation
-            for inputs, labels in val_loader:
+        # Training loop with evaluation on the validation set
+        for epoch in range(num_epochs):
+            # Randomly select batch size between 10 and 40
+            # reset the random seed?
+            # np.random.seed()
+            if model_type == 'LSTM':
+                batch_size = np.random.randint(10, 41)
+            else:
+                batch_size = 1000
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+            # Training phase
+            model.train()
+            running_loss = 0.0
+            running_accuracy = 0.0
+            for inputs, labels in train_loader:
+                optimizer.zero_grad()
+
                 try:
+                    # Move inputs and labels to the GPU
+                    # print(f'Input dimensions {inputs.size()}, Labels dimensions {labels.size()}')
                     inputs, labels = inputs.to(device), labels.to(device)
+                    # Print input dimensions before any modification
+                    # print(f"Original input shape: {inputs.shape}")
+
+                    # Reshape the inputs for CNN (add a channel dimension)
+                    if isinstance(model, CNNModel2D):
+                        inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+                        # print(f"Input shape after unsqueeze for CNN: {inputs.shape}")
+
+                    # Forward pass
                     outputs = model(inputs)
+                    # print(f'Output shape: {outputs.shape}')
+                    # print(f'Outputs: {outputs}')
 
                     # Round the predictions to 0 or 1
                     predicted = torch.round(outputs)
                     predicted = predicted.flatten()
+                    # print(f'Predicted shape: {predicted.shape}')
+                    # print(f'Predicted: {predicted}')
+                    # Adjust shapes for the last batch
 
-                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
                     outputs = outputs.flatten()  # Flatten the output tensor
                     # labels = labels.float().view(-1)  # Flatten the label tensor
-                    # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
-                    # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                    # print(f'Labels shape: {labels.shape}')
+                    # Use raw probabilities in the loss calculation
                     loss = criterion(outputs, labels.float())
-                    val_accuracy += accuracy(predicted, labels)
+                    running_accuracy += accuracy(predicted, labels)
 
-                    val_loss += loss.item()
+                    # Use rounded predictions in the loss calculation
+                    # loss = criterion(predicted.squeeze(), labels.float())  # Use predicted instead of outputs
+                    loss.backward()
+                    optimizer.step()
+
+                    running_loss += loss.item()
 
                 except ValueError as e:
-                    print(f'Error occurred in validation epoch {epoch + 1}: {e}')
+                    print(f'Error occurred in training epoch {epoch +1}: {e}')
                     continue
 
-        # Adjust learning rate
-        scheduler.step()
+            # Validation phase
+            model.eval()  # Set model to evaluation mode
+            val_loss = 0.0
+            val_accuracy = 0.0
+            with torch.no_grad():  # Disable gradient calculation during validation
+                for inputs, labels in val_loader:
+                    try:
+                        inputs, labels = inputs.to(device), labels.to(device)
 
-        # Print average loss and accuracy for each epoch
-        print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
-              f'Training Loss: {running_loss / len(train_loader):.4f}, '
-              f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
-              f'Validation Loss: {val_loss / len(val_loader):.4f}, '
-              f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
-        training_metrics['epochs'].append(epoch + 1)
-        training_metrics['training_loss'].append(running_loss / len(train_loader))
-        training_metrics['training_accuracy'].append(running_accuracy / len(train_loader))
-        training_metrics['validation_loss'].append(val_loss / len(val_loader))
-        training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
+                        # Reshape the inputs for CNN (add a channel dimension)
+                        if isinstance(model, CNNModel2D):
+                            inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
 
-        # Save model if validation loss decreases
-        if (val_loss / len(val_loader)) < best_val_loss:
-            best_val_loss = (val_loss / len(val_loader))
-            # print(f'Best validation loss updated: {best_val_loss}')
-            torch.save(model.state_dict(), f'best_model_{t_v}.pth')
-            counter = 0  # Reset counter if there's improvement
-        else:
-            # Increment counter if there's no improvement
-            counter += 1
-        # print(f'Counter: {counter}')
-        # Check early stopping condition
-        if counter >= patience:
-            print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
-            break
+                        outputs = model(inputs)
 
-    # Test phase
-    model.eval()  # Set model to evaluation mode
-    batch_size = 1000
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+                        # Round the predictions to 0 or 1
+                        predicted = torch.round(outputs)
+                        predicted = predicted.flatten()
 
-    test_predictions = []
-    test_targets = []
+                        # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                        outputs = outputs.flatten()  # Flatten the output tensor
+                        # labels = labels.float().view(-1)  # Flatten the label tensor
+                        # print(f'Outputs: {outputs.shape}, Labels: {labels.shape}')
+                        # print(f'Outputs: {outputs.shape}, labels: {labels.shape}')
+                        loss = criterion(outputs, labels.float())
+                        val_accuracy += accuracy(predicted, labels)
 
-    with torch.no_grad():  # Disable gradient calculation during testing
-        for inputs, labels in test_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)
-            predicted = torch.round(outputs)  # Round the predictions to 0 or 1
-            test_predictions.extend(predicted.cpu().numpy())
-            test_targets.extend(labels.cpu().numpy())
+                        val_loss += loss.item()
 
-    # Generate confusion matrix
-    conf_matrix = confusion_matrix(test_targets, test_predictions)
-    print("Confusion Matrix:")
-    print(conf_matrix)
-    # Convert confusion matrix from NumPy array to list
-    conf_matrix_list = conf_matrix.tolist()
-    training_metrics['confusion_matrix'].append(conf_matrix_list)
+                    except ValueError as e:
+                        print(f'Error occurred in validation epoch {epoch + 1}: {e}')
+                        continue
 
-    # Save the dictionary to a JSON file
-    with open(f'training_log_{t_v}.json', 'w') as jsonfile:
-        json.dump(training_metrics, jsonfile)
+            # Adjust learning rate
+            scheduler.step()
 
-    # Plot confusion matrix
-    '''
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
-    plt.xlabel('Predicted Label')
-    plt.ylabel('True Label')
-    plt.title('Confusion Matrix')
-    plt.show()
-    '''
+            # Print average loss and accuracy for each epoch
+            print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
+                  f'Training Loss: {running_loss / len(train_loader):.4f}, '
+                  f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
+                  f'Validation Loss: {val_loss / len(val_loader):.4f}, '
+                  f'Validation Accuracy: {val_accuracy / len(val_loader):.4f}')
+            training_metrics['epochs'].append(epoch + 1)
+            training_metrics['training_loss'].append(running_loss / len(train_loader))
+            training_metrics['training_accuracy'].append(running_accuracy / len(train_loader))
+            training_metrics['validation_loss'].append(val_loss / len(val_loader))
+            training_metrics['validation_accuracy'].append(val_accuracy / len(val_loader))
+
+            # Save model if validation loss decreases
+            if (val_loss / len(val_loader)) < best_val_loss:
+                best_val_loss = (val_loss / len(val_loader))
+                # print(f'Best validation loss updated: {best_val_loss}')
+                torch.save(model.state_dict(), f'best_model_{t_v}.pth')
+                counter = 0  # Reset counter if there's improvement
+            else:
+                # Increment counter if there's no improvement
+                counter += 1
+            # print(f'Counter: {counter}')
+            # Check early stopping condition
+            if counter >= patience:
+                print(f'Validation loss has not improved for {patience} epochs. Stopping training.')
+                break
+
+        # Test phase
+        # Load the best model saved during training
+        model.load_state_dict(torch.load(f'best_model_{t_v}.pth'))
+
+        model.eval()  # Set model to evaluation mode
+        batch_size = 1000
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+        test_predictions = []
+        test_targets = []
+
+        with torch.no_grad():  # Disable gradient calculation during testing
+            for inputs, labels in test_loader:
+                # Reshape the inputs for CNN (add a channel dimension)
+                if isinstance(model, CNNModel2D):
+                    inputs = inputs.unsqueeze(1)  # Shape becomes (batch_size, 1, slice_len, num_features)
+
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                predicted = torch.round(outputs)  # Round the predictions to 0 or 1
+                test_predictions.extend(predicted.cpu().numpy())
+                test_targets.extend(labels.cpu().numpy())
+
+        # Generate confusion matrix
+        conf_matrix = confusion_matrix(test_targets, test_predictions)
+        print("Confusion Matrix:")
+        print(conf_matrix)
+        # Convert confusion matrix from NumPy array to list
+        conf_matrix_list = conf_matrix.tolist()
+        training_metrics['confusion_matrix'].append(conf_matrix_list)
+
+        # Save the dictionary to a JSON file
+        with open(f'training_log_{t_v}.json', 'w') as jsonfile:
+            json.dump(training_metrics, jsonfile)
+
+        # Plot confusion matrix
+        '''
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.title('Confusion Matrix')
+        plt.show()
+        '''
