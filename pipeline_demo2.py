@@ -151,6 +151,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     while True:
                         try:
                             # Attempt to read one packet from the combined data
+                            print(f'Before reading packet, packet buffer length : {len(packet_buffer)}')
                             packets = rdpcap(io.BytesIO(combined_data), count=1)  # Read one packet
 
                             if not packets:  # Check if no packets were read
@@ -182,7 +183,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             # combined_data = combined_data[packet.getlayer(0).len:]  # Remove processed packet
                             # Keep only the unused data in the buffer
                             packet_buffer = combined_data[processed_bytes:]  # Retain unused data
-                            combined_data = combined_data[processed_bytes:]  # Update combined data
+                            print(f'after reading packet, packet buffer length : {len(packet_buffer)}')
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
