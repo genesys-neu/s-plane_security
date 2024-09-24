@@ -150,7 +150,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     # Try to parse packets one at a time
                     while len(packet_buffer) >= 100:
                         try:
-                            buffer_length = len(packet_buffer)
+                            # buffer_length = len(packet_buffer)
                             # print(f'Before reading packet, packet buffer length : {buffer_length}')
                             packets = rdpcap(io.BytesIO(combined_data), count=1)  # Read one packet
 
@@ -190,10 +190,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             # print(f'After reading packet, packet buffer length: {buffer_length}')
 
                             # Reset combined_data to include the global header
-                            if len(combined_data) < 24:  # Less than global header size
-                                combined_data = pcap_global_header + packet_buffer
-                            else:
-                                combined_data = pcap_global_header + packet_buffer
+                            combined_data = pcap_global_header + packet_buffer
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
