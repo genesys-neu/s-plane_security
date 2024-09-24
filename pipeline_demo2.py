@@ -133,6 +133,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
+                start = time.time()
 
                 if first_run:
                     # Read the global header only once
@@ -142,6 +143,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                 new_data = f.read()
                 if new_data:
+                    print(f'Took {1000*(time.time()-start)} ms to read')
                     # Append the new data to the buffer
                     # print("new data")
                     packet_buffer += new_data
