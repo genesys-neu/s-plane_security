@@ -129,11 +129,12 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             time.sleep(0.1)
             print('Waiting for .pcap file')
 
+        start = time.time()
         try:
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
-                start = time.time()
+                # start = time.time()
 
                 if first_run:
                     # Read the global header only once
@@ -143,7 +144,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                 new_data = f.read()
                 if new_data:
-                    print(f'Took {1000*(time.time()-start)} ms to read')
+                    # print(f'Took {1000*(time.time()-start)} ms to read')
                     # Append the new data to the buffer
                     # print("new data")
                     packet_buffer += new_data
@@ -203,6 +204,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
                             break  # Break the inner loop if an exception occurs
+        print(f'Took {1000*(time.time()-start)} ms to complete try loop')
 
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
