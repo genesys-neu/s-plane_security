@@ -177,8 +177,8 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 initial_time = packet.time
 
                             # Update combined_data to remove the processed packet
-                            processed_bytes = len(
-                                packet) + 16  # Use the actual length of the packet + 16 bytes for the PCAP packet header
+                            processed_bytes = len(packet) + 16
+                            # Use the actual length of the packet + 16 bytes for the PCAP packet header
                             # print(f'Processed bytes: {processed_bytes}')
 
                             # Ensure we have enough data to read next packet
