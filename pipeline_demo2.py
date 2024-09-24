@@ -150,7 +150,6 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     # Try to parse packets one at a time
                     while True:
                         try:
-                            # Attempt to read one packet from the combined data
                             buffer_length = len(packet_buffer)
                             print(f'Before reading packet, packet buffer length : {buffer_length}')
                             packets = rdpcap(io.BytesIO(combined_data), count=1)  # Read one packet
@@ -178,14 +177,15 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 initial_time = packet.time
 
                             # Update combined_data to remove the processed packet
-                            # print(f'packet length initial: {packet.getlayer(0).len}')
                             processed_bytes = len(packet) + 24  # +24 for the global header
-                            print(f'packet length second way: {processed_bytes}')
-                            # combined_data = combined_data[packet.getlayer(0).len:]  # Remove processed packet
-                            # Keep only the unused data in the buffer
-                            packet_buffer = combined_data[processed_bytes:]  # Retain unused data
+                            print(f'Processed bytes: {processed_bytes}')
+
+                            # Remove processed data from the buffer
+                            combined_data = combined_data[processed_bytes:]  # Retain unused data
+                            packet_buffer = combined_data[24:]  # Keep the rest of the data in the buffer
+
                             buffer_length = len(packet_buffer)
-                            print(f'after reading packet, packet buffer length : {buffer_length}')
+                            print(f'After reading packet, packet buffer length: {buffer_length}')
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
