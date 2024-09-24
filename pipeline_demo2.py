@@ -101,12 +101,13 @@ def inference(preprocessed_queue, model, sequence_length, device):
                 # Adjust sliding window size based on queue size
                 queue_size = preprocessed_queue.qsize()
                 print(f'Preprocessed Queue length is {queue_size}')
-                if queue_size <= 2:
-                    window_size = 2
-                elif queue_size >= 30:
-                    window_size = 30
-                else:
-                    window_size = queue_size
+                window_size = 2
+                # if queue_size <= 2:
+                #     window_size = 2
+                # elif queue_size >= 30:
+                #     window_size = 30
+                # else:
+                #     window_size = queue_size
                 sequence = sequence[window_size:]  # Remove the oldest element from the sequence (sliding window)
 
         except queue.Empty:
