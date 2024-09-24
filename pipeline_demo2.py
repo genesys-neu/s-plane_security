@@ -148,7 +148,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     combined_data = pcap_global_header + packet_buffer
 
                     # Try to parse packets one at a time
-                    while True:
+                    while len(packet_buffer) >= 100:
                         try:
                             buffer_length = len(packet_buffer)
                             print(f'Before reading packet, packet buffer length : {buffer_length}')
@@ -201,7 +201,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
-        time.sleep(0.02)
+        time.sleep(0.01)
 
 
 def signal_handler(sig, frame):
