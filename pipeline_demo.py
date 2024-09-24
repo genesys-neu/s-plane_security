@@ -15,8 +15,6 @@ import os
 
 mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
 index = 0  # Index to map MAC addresses
-packet_buffer = b""
-offset = 0
 
 
 def start_tcpdump(file_path, interface):
@@ -119,6 +117,8 @@ def inference(preprocessed_queue, model, sequence_length, device):
 
 
 def acquisition_from_file(packet_queue, file_path, initial_time):
+    packet_buffer = b""  # Initialize the packet buffer
+
     while not exit_flag.is_set():
         try:
             while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
