@@ -150,6 +150,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     # Try to parse packets
                     try:
                         packets = rdpcap(io.BytesIO(combined_data))
+                        print('we have packets')
                         for packet in packets:
                             ptp_info = []  # Prepare packet info
                             if initial_time is None:
