@@ -176,14 +176,17 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 initial_time = packet.time
 
                             # Update combined_data to remove the processed packet
-                            print(f'packet length initial: {packet.getlayer(0).len}')
-                            print(f'packet length second way: {len(packet)+24}')
-                            combined_data = combined_data[packet.getlayer(0).len:]  # Remove processed packet
+                            # print(f'packet length initial: {packet.getlayer(0).len}')
+                            processed_bytes = len(packet) + 24  # +24 for the global header
+                            print(f'packet length second way: {processed_bytes}')
+                            # combined_data = combined_data[packet.getlayer(0).len:]  # Remove processed packet
+                            # Keep only the unused data in the buffer
+                            packet_buffer = combined_data[processed_bytes:]  # Retain unused data
+                            combined_data = combined_data[processed_bytes:]  # Update combined data
+
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
                             break  # Break the inner loop if an exception occurs
-                    # Update packet_buffer to only retain unused data
-                    packet_buffer = combined_data[24:]  # Keep only the unused data (after global header)
 
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
