@@ -24,7 +24,8 @@ def start_tcpdump(file_path, interface):
     Starts tcpdump to capture only PTP packets on the specified interface
     and saves them to a file.
     """
-    tcpdump_command = f"tcpdump -i {interface} -w {file_path} ether proto 0x88f7"
+    password = op3nran
+    tcpdump_command = f"echo {password} | sudo -S tcpdump -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
 
