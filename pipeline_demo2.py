@@ -48,7 +48,7 @@ def pre_processing(packet_queue, preprocessed_queue):
         try:
             # Retrieve packet from packet queue
             print(f'Packet queue in preprocessing: {packet_queue.qsize()}')
-            packet = packet_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            packet = packet_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
 
             # Preprocessing logic: mapping MAC addresses to indices
             # Source address processing
@@ -88,7 +88,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
     # start_time = time.time()  # Initialize start time for the timer
     while not exit_flag.is_set():
         try:
-            preprocessed_packet = preprocessed_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            preprocessed_packet = preprocessed_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
             sequence.append(preprocessed_packet)
 
             # print(f'Sequence length is {len(sequence)}')
@@ -175,7 +175,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
                                 ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
                                 ptp_info.append(float(packet.time - initial_time))
-                                packet_queue.put(ptp_info)
+                                start = time.time()
+                                packet_queue.put(ptp_info, timeout=0.1)
+                                print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
 
