@@ -47,7 +47,8 @@ def pre_processing(packet_queue, preprocessed_queue):
     while not exit_flag.is_set():
         try:
             # Retrieve packet from packet queue
-            packet = packet_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
+            print(f'Packet queue in preprocessing: {packet_queue.qsize()}')
+            packet = packet_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
 
             # Preprocessing logic: mapping MAC addresses to indices
             # Source address processing
@@ -68,6 +69,7 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
+            print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
             continue
@@ -86,7 +88,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
     # start_time = time.time()  # Initialize start time for the timer
     while not exit_flag.is_set():
         try:
-            preprocessed_packet = preprocessed_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
+            preprocessed_packet = preprocessed_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
             sequence.append(preprocessed_packet)
 
             # print(f'Sequence length is {len(sequence)}')
@@ -96,11 +98,11 @@ def inference(preprocessed_queue, model, sequence_length, device):
                 sequence_tensor = torch.tensor(sequence).unsqueeze(0).to(device)
                 # Forward pass
                 outputs = model(sequence_tensor)
-                label = torch.round(outputs)  # Round the predictions to 0 or 1
-                print("Predicted label:", label.item())
+                label = int(torch.round(outputs).item())  # Round the predictions to 0 or 1
+                print("Predicted label:", label)
                 # Adjust sliding window size based on queue size
-                # queue_size = preprocessed_queue.qsize()
-                # print(f'Preprocessed Queue length is {queue_size}')
+                queue_size = preprocessed_queue.qsize()
+                print(f'Inference queue length is {queue_size}')
                 window_size = 2
                 # if queue_size <= 2:
                 #     window_size = 2
@@ -187,11 +189,12 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             packet_buffer = combined_data[24:]  # Keep the rest of the data in the buffer
 
                             # Check the buffer length before next read
-                            buffer_length = len(packet_buffer)
+                            # buffer_length = len(packet_buffer)
                             # print(f'After reading packet, packet buffer length: {buffer_length}')
 
                             # Reset combined_data to include the global header
                             combined_data = pcap_global_header + packet_buffer
+                            print(f'Packet queue in acquisition: {packet_queue.qsize()}')
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
