@@ -150,6 +150,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     # Try to parse packets
                     try:
                         packets = rdpcap(io.BytesIO(combined_data))
+                        processed_bytes = 0
                         print('we have packets')
                         for packet in packets:
                             ptp_info = []  # Prepare packet info
@@ -166,7 +167,12 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 packet_queue.put(ptp_info)
                                 print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
-                        packet_buffer = b""  # Clear buffer after successful processing
+                            # Update the processed bytes count
+                            processed_bytes += len(packet)
+
+                        # Keep only the unused data in the buffer
+                        packet_buffer = packet_buffer[processed_bytes:]  # Retain unused data
+
                     except Scapy_Exception as e:
                         print(f'Exception {e}, waiting for more data')
         except Exception as e:
