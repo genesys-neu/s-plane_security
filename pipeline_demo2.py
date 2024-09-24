@@ -166,8 +166,8 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
                         packet_buffer = b""  # Clear buffer after successful processing
-                    except Scapy_Exception:
-                        pass  # Wait for more data if packets are incomplete
+                    except Scapy_Exception as e:
+                        print(f'Exception {e}, waiting for more data')
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
         time.sleep(0.02)
