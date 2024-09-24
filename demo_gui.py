@@ -41,6 +41,9 @@ def create_log_file(filename):
 
 # Function to handle starting the attack
 def start_attack(attack, interface, duration, sleep, filename, password):
+    remote_host = "your.remote.server"  # Replace with the actual remote server address
+    remote_user = "your_username"  # Replace with the actual remote user
+    remote_password = "your_password"  # Replace with the actual remote user's password
 
     # Only start the attack if no attack is running
     if not st.session_state.is_running:
@@ -49,23 +52,27 @@ def start_attack(attack, interface, duration, sleep, filename, password):
         # Prepare the command
         command = ["sudo", "-S", "python3", attack, '-i', interface, '-d', str(duration), '-s', str(sleep), '-l', filename]
 
-        # Run the command with the password
+        # Prepare the remote command
+        command = [
+            "ssh", f"{remote_user}@{remote_host}", "sudo", "-S", "python3", attack,
+            '-i', interface, '-d', str(duration), '-s', str(sleep), '-l', filename
+        ]
+
+        # Run the command with the password for SSH and sudo
         try:
-            st.session_state.attack_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            st.session_state.attack_process.stdin.write(password.encode() + b'\n')  # Write the password to stdin
+            st.session_state.attack_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                                               stderr=subprocess.PIPE)
+            st.session_state.attack_process.stdin.write((remote_password + '\n').encode())  # SSH password
+            st.session_state.attack_process.stdin.write((password + '\n').encode())  # sudo password
             st.session_state.attack_process.stdin.flush()
 
-            # Log the PID
-            # logging.info(f'Started attack process with PID: {st.session_state.attack_process.pid}')
-
             st.write(
-                f'Starting attack: {os.path.basename(attack)} for {duration} seconds with {sleep} seconds of sleep.'
-            )
+                f'Starting attack: {os.path.basename(attack)} for {duration} seconds with {sleep} seconds of sleep on {remote_host}.')
         except Exception as e:
-            st.error(f"Error starting attack: {e}")
+            st.error(f"Error starting attack on remote server: {e}")
             st.session_state.is_running = False
 
-        logging.info(f'global attack process after start_attack: {st.session_state.attack_process}')
+        logging.info(f'Global attack process after start_attack: {st.session_state.attack_process}')
 
 
 def stop_attack():
@@ -105,11 +112,13 @@ def main():
     with col2:
         st.markdown("### Configure Attack")
         # Get available network interfaces
-        interfaces = get_network_interfaces()
+        # interfaces = get_network_interfaces()
 
         # Inputs
-        interface = st.selectbox("Select Network Interface:", interfaces)
-        output_folder = st.text_input("Enter the folder to store outputs:")
+        # interface = st.selectbox("Select Network Interface:", interfaces)
+        interface_a = 'eth0'
+        # output_folder = st.text_input("Enter the folder to store outputs:")
+        output_folder = './tmp'
         attack_duration = st.selectbox("Select Duration Test:", ["random", "fixed", "continuous"])
         if attack_duration == "random":
             duration = random.randint(10, 30)
@@ -145,7 +154,7 @@ def main():
         if not st.session_state.is_running:
             st.markdown("<h3 style='color:green;'>🟢 No attack running</h3>", unsafe_allow_html=True)
             if st.button("Start Attack"):
-                if interface and output_folder and password:
+                if password:
                     # Create the output folder if it does not exist
                     if not os.path.exists(output_folder):
                         os.makedirs(output_folder)
@@ -155,13 +164,13 @@ def main():
                     logging.info(f'Script name: {script_name}')
 
                     # Start the attack and generate the log filename
-                    filename = os.path.join(output_folder, f'{script_name}.{interface}.{duration}.{sleep}.csv')
+                    filename = os.path.join(output_folder, f'{script_name}.{interface_a}.{duration}.{sleep}.csv')
                     create_log_file(filename)
 
                     # Call the attack function
                     logging.info(f'Calling start_attack, is_running = {st.session_state.is_running}')
                     st.session_state.terminating = False
-                    start_attack(attack_script, interface, duration, sleep, filename, password)
+                    start_attack(attack_script, interface_a, duration, sleep, filename, password)
                     st.rerun()
                 else:
                     st.error("Please fill in all fields.")
@@ -185,9 +194,80 @@ def main():
                     # logging.info(f'Completed stop_attack, is_running = {st.session_state.is_running}')
                     st.rerun()
 
-
     with col1:
         st.markdown("### Configure Monitor")
+        # Input fields for each argument
+        timeout = st.text_input("Timeout (in seconds, leave blank for continuous)", help="Leave blank to run continuously")
+        model_path = st.text_input("Model weights path", value="path/to/your/model.weights",
+                                   help="Enter the full path to the model weights file")
+        interface = st.text_input("Network interface to listen on", value="eth0",
+                                  help="Enter the network interface to listen on")
+
+
+        # Button to run the script
+        if st.button("Start TIMESAFE Detection"):
+            # Construct the command with the provided inputs
+            command = [
+                "python3", "pipeline_demo2.py",
+                "-m", model_path,
+                "-i", interface
+            ]
+            # Add timeout only if greater than 0 (not continuous)
+            if timeout:
+                command.extend(["-t", str(timeout)])
+
+
+            # Display the command to be run
+            st.write("Running command:", " ".join(command))
+
+            # Placeholder for status updates
+            status_placeholder = st.empty()
+
+            try:
+                # Start the subprocess with Popen to read output in real-time
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+                # Read the process output continuously
+                while True:
+                    # Read a line of output
+                    output_line = process.stdout.readline()
+
+                    # If the process has terminated and no output is left, break the loop
+                    if output_line == '' and process.poll() is not None:
+                        break
+
+                    # Check for the output containing the predicted label
+                    if "Predicted label:" in output_line:
+                        # Extract the predicted label (0 or 1)
+                        predicted_label = int(output_line.strip().split()[-1])
+
+                        # Update the UI based on the predicted label
+                        if predicted_label == 0:
+                            status_placeholder.markdown(
+                                "<h3 style='color:green;'>🟢 SAFE - No Attack detected</h3>",
+                                unsafe_allow_html=True
+                            )
+                        elif predicted_label == 1:
+                            status_placeholder.markdown(
+                                "<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
+                                unsafe_allow_html=True
+                            )
+
+                    # Sleep for a short duration to prevent busy-waiting
+                    time.sleep(0.1)
+
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+            finally:
+                # If the process ends, handle exit status and errors
+                return_code = process.poll()
+                if return_code:
+                    st.error(f"Error: {process.stderr.read()}")
+                else:
+                    st.success("Process completed successfully.")
+                process.stdout.close()
+                process.stderr.close()
 
 if __name__ == "__main__":
     main()
