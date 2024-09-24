@@ -47,7 +47,7 @@ def pre_processing(packet_queue, preprocessed_queue):
     while not exit_flag.is_set():
         try:
             # Retrieve packet from packet queue
-            print(f'Packet queue in preprocessing: {packet_queue.qsize()}')
+            # print(f'Packet queue in preprocessing: {packet_queue.qsize()}')
             packet = packet_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
 
             # Preprocessing logic: mapping MAC addresses to indices
@@ -69,7 +69,7 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
-            print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
+            # print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
             continue
@@ -102,7 +102,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
                 print("Predicted label:", label)
                 # Adjust sliding window size based on queue size
                 queue_size = preprocessed_queue.qsize()
-                print(f'Inference queue length is {queue_size}')
+                # print(f'Inference queue length is {queue_size}')
                 window_size = 2
                 # if queue_size <= 2:
                 #     window_size = 2
@@ -175,9 +175,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
                                 ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
                                 ptp_info.append(float(packet.time - initial_time))
-                                start = time.time()
+                                # start = time.time()
                                 packet_queue.put(ptp_info, timeout=0.1)
-                                print(f'Took {1000*(time.time()-start)} ms to place item in queue')
+                                # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
 
@@ -196,7 +196,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                             # Reset combined_data to include the global header
                             combined_data = pcap_global_header + packet_buffer
-                            print(f'Packet queue in acquisition: {packet_queue.qsize()}')
+                            # print(f'Packet queue in acquisition: {packet_queue.qsize()}')
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
