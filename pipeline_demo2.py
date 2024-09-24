@@ -204,7 +204,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
                             break  # Break the inner loop if an exception occurs
-        print(f'Took {1000*(time.time()-start)} ms to complete try loop')
+            print(f'Took {1000*(time.time()-start)} ms to complete try loop')
 
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
