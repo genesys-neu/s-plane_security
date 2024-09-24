@@ -126,6 +126,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                 time.sleep(0.1)  # Wait for 100ms before checking again
 
             with open(file_path, 'rb') as f:
+                print(f"Offset = {}")
                 f.seek(offset)
                 new_data = f.read()
                 if new_data:
