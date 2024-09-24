@@ -89,7 +89,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
             preprocessed_packet = preprocessed_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
             sequence.append(preprocessed_packet)
 
-            print(f'Sequence length is {len(sequence)}')
+            # print(f'Sequence length is {len(sequence)}')
             # Check if sequence length meets the desired criteria (e.g., a fixed length or a certain number of packets)
             if len(sequence) == sequence_length:
                 # Move sequence to the correct device
@@ -157,7 +157,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             print(f"Error reading from file: {str(e)}")
         finally:
             # print("Closed pcap file.")
-            time.sleep(.02)
+            time.sleep(.01)
 
     print("Exiting acquisition_from_file.")
 
