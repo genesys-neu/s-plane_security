@@ -127,30 +127,31 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
         # Initialize PcapReader for continuous reading
         try:
-            pcap_reader = PcapReader(file_path)
-            print("Opened pcap file for reading.")
+            with PcapReader(file_path) as pcap_reader:
+                print("Opened pcap file for reading.")
+                current_position = 0
 
-            for packet in pcap_reader:
-                if Ether in packet and packet[Ether].type == 35063:
-                    ptp_info = []
-                    ptp_info.append(packet[Ether].src)
-                    ptp_info.append(packet[Ether].dst)
-                    ptp_info.append(len(packet))
-                    ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
-                    ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
-                    ptp_info.append(packet.time)
-                    packet_queue.put(ptp_info)
+                for packet in pcap_reader:
+                    current_position += 1
+                    if current_position > last_position:
+                        if Ether in packet and packet[Ether].type == 35063:
+                            ptp_info = []
+                            ptp_info.append(packet[Ether].src)
+                            ptp_info.append(packet[Ether].dst)
+                            ptp_info.append(len(packet))
+                            ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
+                            ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
+                            ptp_info.append(packet.time)
+                            packet_queue.put(ptp_info)
 
-                # Update last position
-                last_position = pcap_reader.tell()
+            # Update last position
+                last_position = current_position
 
-        except Scapy_Exception as e:
-            print(f"Scapy Exception: {e}")
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
         finally:
-            pcap_reader.close()
             print("Closed pcap file.")
+            time.sleep(.02)
 
     print("Exiting acquisition_from_file.")
 
