@@ -6,7 +6,7 @@ from train_test import TransformerNN
 import re
 import torch
 from functools import partial
-from scapy.all import rdpcap, Ether, Scapy_Exception
+from scapy.all import rdpcap, PcapReader, Ether, Scapy_Exception
 from scapy.all import *
 import signal  #SIMONE add signal library
 import subprocess
@@ -117,73 +117,35 @@ def inference(preprocessed_queue, model, sequence_length, device):
 
 
 def acquisition_from_file(packet_queue, file_path, initial_time):
-    packet_buffer = b""  # Initialize the packet buffer
     last_position = 0
 
     while not exit_flag.is_set():
+        # Initialize PcapReader for continuous reading
         try:
-            # Wait until the file exists and has data
-            while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                time.sleep(0.1)
+            pcap_reader = PcapReader(file_path)
+            print("Opened pcap file for reading.")
 
-            # Open the file in binary read mode
-            with open(file_path, 'rb') as f:
-                f.seek(last_position)  # Start reading from the last known position
-                print("Monitoring for new packets...")
+            for packet in pcap_reader:
+                if Ether in packet and packet[Ether].type == 35063:
+                    ptp_info = []
+                    ptp_info.append(packet[Ether].src)
+                    ptp_info.append(packet[Ether].dst)
+                    ptp_info.append(len(packet))
+                    ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
+                    ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
+                    ptp_info.append(packet.time)
+                    packet_queue.put(ptp_info)
 
-                while not exit_flag.is_set():
-                    # Read the new data from the file
-                    new_data = f.read(4096)
-                    if not new_data:
-                        time.sleep(0.02)  # No new data, sleep briefly
-                        continue
+                # Update last position
+                last_position = pcap_reader.tell()
 
-                    packet_buffer += new_data  # Append new data to the buffer
-                    last_position = f.tell()  # Update the last known position
-
-                    # Print buffer size and last position
-                    print(f"Buffer size: {len(packet_buffer)} bytes, Last position: {last_position}")
-
-                    # Try to parse packets from the buffer
-                    try:
-                        pcap_io = io.BytesIO(packet_buffer)
-                        packets = rdpcap(pcap_io)
-
-                        # Process packets
-                        bytes_processed = 0
-                        for packet in packets:
-                            ptp_info = []  # Prepare packet info
-                            if initial_time is None:
-                                initial_time = packet.time
-                            if Ether in packet and packet[Ether].type == 35063:
-                                # Extract relevant PTP info
-                                ptp_info.append(packet[Ether].src)
-                                ptp_info.append(packet[Ether].dst)
-                                ptp_info.append(len(packet))
-                                ptp_info.append(
-                                    int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
-                                ptp_info.append(
-                                    int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
-                                ptp_info.append(float(packet.time - initial_time))
-                                packet_queue.put(ptp_info)
-                                print(f'Adding {ptp_info} to queue')
-                                initial_time = packet.time
-
-                                # Accumulate bytes processed
-                                bytes_processed += len(packet)
-
-                        # Remove processed bytes from the buffer
-                        packet_buffer = packet_buffer[bytes_processed:]  # Keep remaining data in the buffer
-                        print(f"After Try buffer size: {len(packet_buffer)} bytes, Last position: {last_position}")
-
-                    except Scapy_Exception as e:
-                        print(f"Scapy Exception: {e}")
-                        # Print buffer size and last position
-                        print(f"After except buffer size: {len(packet_buffer)} bytes, Last position: {last_position}")
-                        # Keep the buffer if there was an error in parsing
-
+        except Scapy_Exception as e:
+            print(f"Scapy Exception: {e}")
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
+        finally:
+            pcap_reader.close()
+            print("Closed pcap file.")
 
     print("Exiting acquisition_from_file.")
 
