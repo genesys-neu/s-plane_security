@@ -33,7 +33,7 @@ def start_tcpdump(file_path, interface):
             print(f"Failed to remove the file: {e}")
 
 
-    tcpdump_command = f"echo {password} | sudo -S tcpdump -i {interface} -w {file_path} ether proto 0x88f7"
+    tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
 
