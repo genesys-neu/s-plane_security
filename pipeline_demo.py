@@ -124,22 +124,22 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
                 time.sleep(0.1)  # Wait for 100ms before checking again
 
-            # Open the file in read mode with the ability to seek to the end
+            # Open the file in binary read mode
             with open(file_path, 'rb') as f:
                 # Move the pointer to the end of the file
                 f.seek(0, os.SEEK_END)
-                print("Monitoring for new lines...")
+                print("Monitoring for new packets...")
 
                 while not exit_flag.is_set():
-                    # Read a line (or a specified byte length) from the file
-                    new_line = f.readline()
+                    # Read a chunk of data from the file
+                    new_data = f.read(4096)  # Adjust the chunk size as needed
 
-                    # Check if new line data is available
-                    if new_line:
+                    if new_data:
+                        packet_buffer += new_data  # Append new data to the buffer
+
+                        # Try to parse packets from the buffer
                         try:
-                            # Parse the packets from the new line
-                            print(f'new line: {new_line}')
-                            packets = rdpcap(io.BytesIO(new_line))
+                            packets = rdpcap(io.BytesIO(packet_buffer))
                             for packet in packets:
                                 ptp_info = []  # Prepare packet info
                                 if initial_time is None:
@@ -149,16 +149,24 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                     ptp_info.append(packet[Ether].src)
                                     ptp_info.append(packet[Ether].dst)
                                     ptp_info.append(len(packet))
-                                    ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
-                                    ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
+                                    ptp_info.append(
+                                        int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
+                                    ptp_info.append(
+                                        int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
                                     ptp_info.append(float(packet.time - initial_time))
                                     packet_queue.put(ptp_info)
                                     print(f'Adding {ptp_info} to queue')
                                     initial_time = packet.time
+
+                            # Clear the buffer if the parsing was successful
+                            packet_buffer = b""  # Reset buffer after processing
+
                         except Scapy_Exception as e:
                             print(f"Scapy Exception: {e}")
+                            # Retain the buffer if there was an error in parsing
+
                     else:
-                        # Sleep for a short duration if no new line is found
+                        # Sleep briefly if no new data is found
                         time.sleep(0.01)
 
         except Exception as e:
