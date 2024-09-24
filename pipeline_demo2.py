@@ -151,29 +151,32 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     while True:
                         try:
                             # Attempt to read one packet from the combined data
-                            packet = rdpcap(io.BytesIO(combined_data), count=1)  # Read one packet
+                            packets = rdpcap(io.BytesIO(combined_data), count=1)  # Read one packet
 
-                            if not packet:  # Break if no packet was read
+                            if not packets:  # Check if no packets were read
                                 break
 
-                            # Process the single packet
+                            print('Packet read')
+                            packet = packets[0]  # Get the first packet
                             ptp_info = []  # Prepare packet info
+
                             if initial_time is None:
-                                initial_time = packet[0].time  # Use the time from the first packet
-                            if Ether in packet[0] and packet[0][Ether].type == 35063:
+                                initial_time = packet.time  # Use the time from the first packet
+
+                            if Ether in packet and packet[Ether].type == 35063:
                                 # Extract relevant PTP info
-                                ptp_info.append(packet[0][Ether].src)
-                                ptp_info.append(packet[0][Ether].dst)
-                                ptp_info.append(len(packet[0]))
-                                ptp_info.append(int.from_bytes(packet[0].load[30:32], byteorder='big'))  # Sequence ID
-                                ptp_info.append(int.from_bytes(packet[0].load[:1], byteorder='big'))  # Message type
-                                ptp_info.append(float(packet[0].time - initial_time))
+                                ptp_info.append(packet[Ether].src)
+                                ptp_info.append(packet[Ether].dst)
+                                ptp_info.append(len(packet))
+                                ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
+                                ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
+                                ptp_info.append(float(packet.time - initial_time))
                                 packet_queue.put(ptp_info)
                                 print(f'Adding {ptp_info} to queue')
-                                initial_time = packet[0].time
+                                initial_time = packet.time
 
                             # Update combined_data to remove the processed packet
-                            combined_data = combined_data[packet[0].getlayer(0).len:]  # Remove processed packet
+                            combined_data = combined_data[packet.getlayer(0).len:]  # Remove processed packet
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
                             break  # Break the inner loop if an exception occurs
