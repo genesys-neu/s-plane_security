@@ -126,9 +126,10 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             print('Waiting for .pcap file')
 
         # Initialize PcapReader for continuous reading
+        print(f'Last Position: {last_position}')
         try:
             with PcapReader(file_path) as pcap_reader:
-                print("Opened pcap file for reading.")
+                # print("Opened pcap file for reading.")
                 current_position = 0
 
                 for packet in pcap_reader:
@@ -155,7 +156,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
         finally:
-            print("Closed pcap file.")
+            # print("Closed pcap file.")
             time.sleep(.02)
 
     print("Exiting acquisition_from_file.")
