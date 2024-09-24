@@ -128,19 +128,19 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
         try:
             with open(file_path, 'rb') as f:
-                print(f"offset: {offset}")
+                # print(f"offset: {offset}")
                 f.seek(offset)
 
                 if first_run:
                     # Read the global header only once
                     pcap_global_header = f.read(24)  # Global header size in pcap files
                     first_run = False
-                    print(f"global header: {pcap_global_header}")
+                    # print(f"global header: {pcap_global_header}")
 
                 new_data = f.read()
                 if new_data:
                     # Append the new data to the buffer
-                    print("new data")
+                    # print("new data")
                     packet_buffer += new_data
                     offset = f.tell()
 
@@ -151,13 +151,13 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     while len(packet_buffer) >= 100:
                         try:
                             buffer_length = len(packet_buffer)
-                            print(f'Before reading packet, packet buffer length : {buffer_length}')
+                            # print(f'Before reading packet, packet buffer length : {buffer_length}')
                             packets = rdpcap(io.BytesIO(combined_data), count=1)  # Read one packet
 
                             if not packets:  # Check if no packets were read
                                 break
 
-                            print('Packet read')
+                            # print('Packet read')
                             packet = packets[0]  # Get the first packet
                             ptp_info = []  # Prepare packet info
 
@@ -179,7 +179,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             # Update combined_data to remove the processed packet
                             processed_bytes = len(
                                 packet) + 16  # Use the actual length of the packet + 16 bytes for the PCAP packet header
-                            print(f'Processed bytes: {processed_bytes}')
+                            # print(f'Processed bytes: {processed_bytes}')
 
                             # Ensure we have enough data to read next packet
                             combined_data = combined_data[processed_bytes:]  # Retain unused data
@@ -187,7 +187,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                             # Check the buffer length before next read
                             buffer_length = len(packet_buffer)
-                            print(f'After reading packet, packet buffer length: {buffer_length}')
+                            # print(f'After reading packet, packet buffer length: {buffer_length}')
 
                             # Reset combined_data to include the global header
                             if len(combined_data) < 24:  # Less than global header size
