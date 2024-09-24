@@ -6,8 +6,8 @@ from train_test import TransformerNN
 import re
 import torch
 from functools import partial
+from scapy.all import rdpcap, Ether, Scapy_Exception
 from scapy.all import *
-from scapy.all import Ether
 import signal  #SIMONE add signal library
 import subprocess
 import os
@@ -119,49 +119,46 @@ def inference(preprocessed_queue, model, sequence_length, device):
 
 
 def acquisition_from_file(packet_queue, file_path, initial_time):
-    global packet_buffer, offset
     while not exit_flag.is_set():
         try:
-            while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                time.sleep(0.1)  # Wait for 100ms before checking again
-
+            # Open the file in read mode with the ability to seek to the end
             with open(file_path, 'rb') as f:
-                print(f'Offset = {offset}')
-                f.seek(offset)
-                new_data = f.read()
-                if new_data:
-                    packet_buffer += new_data
-                    offset = f.tell()
+                # Move the pointer to the end of the file
+                f.seek(0, os.SEEK_END)
+                print("Monitoring for new lines...")
 
-                    # Try to parse packets
-                    try:
-                        packets = rdpcap(io.BytesIO(packet_buffer))
-                        for packet in packets:
-                            ptp_info = []  # Prepare packet info
-                            if initial_time is None:
-                                initial_time = packet.time
-                            if Ether in packet and packet[Ether].type == 35063:
-                                # Extract relevant PTP info
-                                ptp_info.append(packet[Ether].src)
-                                ptp_info.append(packet[Ether].dst)
-                                ptp_info.append(len(packet))
-                                ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
-                                ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
-                                ptp_info.append(float(packet.time - initial_time))
-                                packet_queue.put(ptp_info)
-                                print(f'Adding {ptp_info} to queue')
-                                initial_time = packet.time
-                        packet_buffer = b""  # Clear buffer after successful processing
-                    except Scapy_Exception as e:
-                        print(f"Scapy Exception {e}")
-                        # Wait for more data if packets are incomplete
-                else:
-                    print("no new data read. Retaining buffer for next iteration.")
+                while not exit_flag.is_set():
+                    # Read a line (or a specified byte length) from the file
+                    new_line = f.readline()
+
+                    # Check if new line data is available
+                    if new_line:
+                        try:
+                            # Parse the packets from the new line
+                            packets = rdpcap(io.BytesIO(new_line))
+                            for packet in packets:
+                                ptp_info = []  # Prepare packet info
+                                if initial_time is None:
+                                    initial_time = packet.time
+                                if Ether in packet and packet[Ether].type == 35063:
+                                    # Extract relevant PTP info
+                                    ptp_info.append(packet[Ether].src)
+                                    ptp_info.append(packet[Ether].dst)
+                                    ptp_info.append(len(packet))
+                                    ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
+                                    ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
+                                    ptp_info.append(float(packet.time - initial_time))
+                                    packet_queue.put(ptp_info)
+                                    print(f'Adding {ptp_info} to queue')
+                                    initial_time = packet.time
+                        except Scapy_Exception as e:
+                            print(f"Scapy Exception: {e}")
+                    else:
+                        # Sleep for a short duration if no new line is found
+                        time.sleep(0.01)
 
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
-
-        time.sleep(.04)
 
         if exit_flag.is_set():  # Break the outer loop if flag is set
             break
