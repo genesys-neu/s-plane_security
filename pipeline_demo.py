@@ -64,6 +64,9 @@ def pre_processing(packet_queue, preprocessed_queue):
         except queue.Empty:
             continue
 
+        if exit_flag.is_set():  # Break the outer loop if flag is set
+            break
+
 
 def inference(preprocessed_queue, model, sequence_length, device):
     """
@@ -100,6 +103,9 @@ def inference(preprocessed_queue, model, sequence_length, device):
         except queue.Empty:
             continue
 
+        if exit_flag.is_set():  # Break the outer loop if flag is set
+            break
+
 
 def acquisition_from_file(packet_queue, file_path, initial_time):
     global packet_buffer, offset
@@ -128,6 +134,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
                                 ptp_info.append(packet.time - initial_time)
                                 packet_queue.put(ptp_info)
+                                print(f'Adding {ptp_info} to buffer')
                                 initial_time = packet.time
                         packet_buffer = b""  # Clear buffer after successful processing
                     except Scapy_Exception:
@@ -136,6 +143,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             print(f"Error reading from file: {str(e)}")
         time.sleep(.04)
 
+        if exit_flag.is_set():  # Break the outer loop if flag is set
+            break
+
 
 def signal_handler(sig, frame):
     """
@@ -143,6 +153,7 @@ def signal_handler(sig, frame):
     """
     print("\nExiting gracefully...")
     exit_flag.set()
+    tcpdump_process.terminate()  # Terminate tcpdump
 
 
 if __name__ == "__main__":
@@ -213,7 +224,11 @@ if __name__ == "__main__":
     try:
         # Optionally, run the program continuously for a specified time (time_out)
         if args.time_out:
-            time.sleep(args.time_out)
+            start = time.time()
+            while time.time()-start <= args.time_out:
+                time.sleep(1)
+                if exit_flag.is_set():  # Break the outer loop if flag is set
+                    break
             exit_flag.set()
         else:
             while not exit_flag.is_set():
