@@ -136,13 +136,18 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     if current_position > last_position:
                         if Ether in packet and packet[Ether].type == 35063:
                             ptp_info = []
+                            if initial_time is None:
+                                initial_time = packet.time
+                            # Extract relevant PTP info
                             ptp_info.append(packet[Ether].src)
                             ptp_info.append(packet[Ether].dst)
                             ptp_info.append(len(packet))
                             ptp_info.append(int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
                             ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
-                            ptp_info.append(packet.time)
+                            ptp_info.append(float(packet.time - initial_time))
                             packet_queue.put(ptp_info)
+                            print(f'Adding {ptp_info} to queue')
+                            initial_time = packet.time
 
             # Update last position
                 last_position = current_position
