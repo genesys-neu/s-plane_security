@@ -177,19 +177,23 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 initial_time = packet.time
 
                             # Update combined_data to remove the processed packet
-                            # Use the actual length of the packet + 16 bytes for the PCAP packet header
-                            processed_bytes = len(packet) + 16
+                            processed_bytes = len(
+                                packet) + 16  # Use the actual length of the packet + 16 bytes for the PCAP packet header
                             # print(f'Processed bytes: {processed_bytes}')
 
-                            # Keep remaining data after the processed packet
-                            packet_buffer = combined_data[processed_bytes:]
+                            # Ensure we have enough data to read next packet
+                            combined_data = combined_data[processed_bytes:]  # Retain unused data
+                            packet_buffer = combined_data[24:]  # Keep the rest of the data in the buffer
 
-                            # Always re-combine the global header with the updated buffer
-                            combined_data = pcap_global_header + packet_buffer
-
-                            # Update buffer length for debugging
+                            # Check the buffer length before next read
                             buffer_length = len(packet_buffer)
                             # print(f'After reading packet, packet buffer length: {buffer_length}')
+
+                            # Reset combined_data to include the global header
+                            if len(combined_data) < 24:  # Less than global header size
+                                combined_data = pcap_global_header + packet_buffer
+                            else:
+                                combined_data = pcap_global_header + packet_buffer
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
