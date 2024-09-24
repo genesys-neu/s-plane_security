@@ -121,6 +121,9 @@ def inference(preprocessed_queue, model, sequence_length, device):
 def acquisition_from_file(packet_queue, file_path, initial_time):
     while not exit_flag.is_set():
         try:
+            while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                time.sleep(0.1)  # Wait for 100ms before checking again
+
             # Open the file in read mode with the ability to seek to the end
             with open(file_path, 'rb') as f:
                 # Move the pointer to the end of the file
@@ -135,6 +138,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     if new_line:
                         try:
                             # Parse the packets from the new line
+                            print(f'new line: {new_line}')
                             packets = rdpcap(io.BytesIO(new_line))
                             for packet in packets:
                                 ptp_info = []  # Prepare packet info
