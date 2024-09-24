@@ -39,7 +39,7 @@ def pre_processing(packet_queue, preprocessed_queue):
     while not exit_flag.is_set():
         try:
             # Retrieve packet from packet queue
-            packet = packet_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            packet = packet_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
 
             # Preprocessing logic: mapping MAC addresses to indices
             # Source address processing
@@ -78,9 +78,10 @@ def inference(preprocessed_queue, model, sequence_length, device):
     # start_time = time.time()  # Initialize start time for the timer
     while not exit_flag.is_set():
         try:
-            preprocessed_packet = preprocessed_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            preprocessed_packet = preprocessed_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
             sequence.append(preprocessed_packet)
 
+            print(f'Sequence length is {len(sequence)}')
             # Check if sequence length meets the desired criteria (e.g., a fixed length or a certain number of packets)
             if len(sequence) == sequence_length:
                 # Move sequence to the correct device
