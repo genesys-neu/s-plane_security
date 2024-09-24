@@ -141,6 +141,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     packet_buffer += new_data  # Append new data to the buffer
                     last_position = f.tell()  # Update the last known position
 
+                    # Print buffer size and last position
+                    print(f"Buffer size: {len(packet_buffer)} bytes, Last position: {last_position}")
+
                     # Try to parse packets from the buffer
                     try:
                         packets = rdpcap(io.BytesIO(packet_buffer))
@@ -164,9 +167,13 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                         # Reset buffer after processing
                         packet_buffer = b""
+                        # Print buffer size and last position
+                        print(f"After Try buffer size: {len(packet_buffer)} bytes, Last position: {last_position}")
 
                     except Scapy_Exception as e:
                         print(f"Scapy Exception: {e}")
+                        # Print buffer size and last position
+                        print(f"After except buffer size: {len(packet_buffer)} bytes, Last position: {last_position}")
                         # Keep the buffer if there was an error in parsing
 
         except Exception as e:
