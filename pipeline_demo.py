@@ -133,6 +133,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                 while not exit_flag.is_set():
                     # Read a chunk of data from the file
                     new_data = f.read(4096)  # Adjust the chunk size as needed
+                    print(f'Added new data. Current size is {len(new_data)}')
 
                     if new_data:
                         packet_buffer += new_data  # Append new data to the buffer
