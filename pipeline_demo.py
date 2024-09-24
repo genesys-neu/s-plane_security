@@ -122,6 +122,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
     global packet_buffer, offset
     while not exit_flag.is_set():
         try:
+            while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                time.sleep(0.1)  # Wait for 100ms before checking again
+
             with open(file_path, 'rb') as f:
                 f.seek(offset)
                 new_data = f.read()
