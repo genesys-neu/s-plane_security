@@ -24,12 +24,17 @@ def start_tcpdump(file_path, interface):
     Starts tcpdump to capture only PTP packets on the specified interface
     and saves them to a file.
     """
-    # Check if the file exists and remove it
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        print(f"Removed existing file: {file_path}")
-
     password = 'op3nran'
+
+    # Check if the file exists and remove it using sudo
+    if os.path.exists(file_path):
+        try:
+            subprocess.run(f"echo {password} | sudo -S rm {file_path}", shell=True, check=True)
+            print(f"Removed existing file: {file_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to remove the file: {e}")
+
+
     tcpdump_command = f"echo {password} | sudo -S tcpdump -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
