@@ -118,63 +118,61 @@ def inference(preprocessed_queue, model, sequence_length, device):
 
 def acquisition_from_file(packet_queue, file_path, initial_time):
     packet_buffer = b""  # Initialize the packet buffer
+    last_position = 0
 
     while not exit_flag.is_set():
         try:
+            # Wait until the file exists and has data
             while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                time.sleep(0.1)  # Wait for 100ms before checking again
+                time.sleep(0.1)
 
             # Open the file in binary read mode
             with open(file_path, 'rb') as f:
-                # Move the pointer to the end of the file
-                f.seek(0, os.SEEK_END)
+                f.seek(last_position)  # Start reading from the last known position
                 print("Monitoring for new packets...")
 
                 while not exit_flag.is_set():
-                    # Read a chunk of data from the file
-                    new_data = f.read(4096)  # Adjust the chunk size as needed
-                    print(f'Added new data. Current size is {len(new_data)}')
+                    # Read the new data from the file
+                    new_data = f.read(4096)
+                    if not new_data:
+                        time.sleep(0.02)  # No new data, sleep briefly
+                        continue
 
-                    if new_data:
-                        packet_buffer += new_data  # Append new data to the buffer
+                    packet_buffer += new_data  # Append new data to the buffer
+                    last_position = f.tell()  # Update the last known position
 
-                        # Try to parse packets from the buffer
-                        try:
-                            packets = rdpcap(io.BytesIO(packet_buffer))
-                            for packet in packets:
-                                ptp_info = []  # Prepare packet info
-                                if initial_time is None:
-                                    initial_time = packet.time
-                                if Ether in packet and packet[Ether].type == 35063:
-                                    # Extract relevant PTP info
-                                    ptp_info.append(packet[Ether].src)
-                                    ptp_info.append(packet[Ether].dst)
-                                    ptp_info.append(len(packet))
-                                    ptp_info.append(
-                                        int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
-                                    ptp_info.append(
-                                        int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
-                                    ptp_info.append(float(packet.time - initial_time))
-                                    packet_queue.put(ptp_info)
-                                    print(f'Adding {ptp_info} to queue')
-                                    initial_time = packet.time
+                    # Try to parse packets from the buffer
+                    try:
+                        packets = rdpcap(io.BytesIO(packet_buffer))
+                        for packet in packets:
+                            ptp_info = []  # Prepare packet info
+                            if initial_time is None:
+                                initial_time = packet.time
+                            if Ether in packet and packet[Ether].type == 35063:
+                                # Extract relevant PTP info
+                                ptp_info.append(packet[Ether].src)
+                                ptp_info.append(packet[Ether].dst)
+                                ptp_info.append(len(packet))
+                                ptp_info.append(
+                                    int.from_bytes(packet.load[30:32], byteorder='big'))  # Sequence ID
+                                ptp_info.append(
+                                    int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
+                                ptp_info.append(float(packet.time - initial_time))
+                                packet_queue.put(ptp_info)
+                                print(f'Adding {ptp_info} to queue')
+                                initial_time = packet.time
 
-                            # Clear the buffer if the parsing was successful
-                            packet_buffer = b""  # Reset buffer after processing
+                        # Reset buffer after processing
+                        packet_buffer = b""
 
-                        except Scapy_Exception as e:
-                            print(f"Scapy Exception: {e}")
-                            # Retain the buffer if there was an error in parsing
-
-                    else:
-                        # Sleep briefly if no new data is found
-                        time.sleep(0.01)
+                    except Scapy_Exception as e:
+                        print(f"Scapy Exception: {e}")
+                        # Keep the buffer if there was an error in parsing
 
         except Exception as e:
             print(f"Error reading from file: {str(e)}")
 
-        if exit_flag.is_set():  # Break the outer loop if flag is set
-            break
+    print("Exiting acquisition_from_file.")
 
 
 def signal_handler(sig, frame):
