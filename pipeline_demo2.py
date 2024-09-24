@@ -176,6 +176,8 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 initial_time = packet.time
 
                             # Update combined_data to remove the processed packet
+                            print(f'packet length initial: {packet.getlayer(0).len}')
+                            print(f'packet length second way: {len(packet)+24}')
                             combined_data = combined_data[packet.getlayer(0).len:]  # Remove processed packet
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
