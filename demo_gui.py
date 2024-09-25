@@ -6,6 +6,7 @@ import random
 import psutil
 import csv
 import logging
+import paramiko
 
 
 # Configure logging
@@ -25,6 +26,7 @@ if 'is_running' not in st.session_state:
 if 'terminating' not in st.session_state:
     st.session_state.terminating = False
 
+
 def get_network_interfaces():
     """Retrieve available network interfaces."""
     interfaces = psutil.net_if_addrs()
@@ -40,39 +42,50 @@ def create_log_file(filename):
 
 
 # Function to handle starting the attack
-def start_attack(attack, interface, duration, sleep, filename, password):
-    remote_host = "your.remote.server"  # Replace with the actual remote server address
-    remote_user = "your_username"  # Replace with the actual remote user
-    remote_password = "your_password"  # Replace with the actual remote user's password
+def start_attack(attack, interface, duration, sleep, filename):
+    remote_host = "10.188.57.241"  # Replace with the actual remote server address
+    remote_user = "orantestbed"  # Replace with the actual remote user
+    remote_password = "op3nran"  # Replace with the actual remote user's password
 
     # Only start the attack if no attack is running
     if not st.session_state.is_running:
         st.session_state.is_running = True
 
         # Prepare the command
-        command = ["sudo", "-S", "python3", attack, '-i', interface, '-d', str(duration), '-s', str(sleep), '-l', filename]
+        command = f"echo {remote_password} | sudo -S python3 {attack} -i {interface} -d {duration} -s {sleep} -l {filename}"
 
-        # Prepare the remote command
-        command = [
-            "ssh", f"{remote_user}@{remote_host}", "sudo", "-S", "python3", attack,
-            '-i', interface, '-d', str(duration), '-s', str(sleep), '-l', filename
-        ]
-
-        # Run the command with the password for SSH and sudo
         try:
-            st.session_state.attack_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                                               stderr=subprocess.PIPE)
-            st.session_state.attack_process.stdin.write((remote_password + '\n').encode())  # SSH password
-            st.session_state.attack_process.stdin.write((password + '\n').encode())  # sudo password
-            st.session_state.attack_process.stdin.flush()
+            # Initialize SSH client
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-            st.write(
-                f'Starting attack: {os.path.basename(attack)} for {duration} seconds with {sleep} seconds of sleep on {remote_host}.')
+            # Connect to the remote server
+            ssh.connect(remote_host, username=remote_user, password=remote_password)
+
+            # Execute the command on the remote server
+            stdin, stdout, stderr = ssh.exec_command(command)
+
+            st.write(f'Starting attack: {os.path.basename(attack)} for {duration} seconds with {sleep} '
+                     f'seconds of sleep on {remote_host}.')
+
+            # Read the process output continuously and display it in the Streamlit app
+            output = stdout.read().decode()
+            error = stderr.read().decode()
+
+            if output:
+                st.write("Output:\n", output)
+            if error:
+                st.error(f"Error:\n{error}")
+
         except Exception as e:
             st.error(f"Error starting attack on remote server: {e}")
             st.session_state.is_running = False
 
-        logging.info(f'Global attack process after start_attack: {st.session_state.attack_process}')
+        finally:
+            # Close the SSH connection
+            ssh.close()
+
+        logging.info(f'Global attack process after start_attack: {command}')
 
 
 def stop_attack():
@@ -116,7 +129,7 @@ def main():
 
         # Inputs
         # interface = st.selectbox("Select Network Interface:", interfaces)
-        interface_a = 'eth0'
+        interface_a = 'enp1s0f1np1'
         # output_folder = st.text_input("Enter the folder to store outputs:")
         output_folder = './tmp'
         attack_duration = st.selectbox("Select Duration Test:", ["random", "fixed", "continuous"])
@@ -148,32 +161,30 @@ def main():
             attack_script = os.path.join(directory, "Announce_Attack.py")
 
         # Prompt for sudo password
-        password = st.text_input("Enter your sudo password:", type="password")
+        # password = st.text_input("Enter your sudo password:", type="password")
         # logging.info(f'global attack process: {st.session_state.attack_process}')
 
         if not st.session_state.is_running:
             st.markdown("<h3 style='color:green;'>🟢 No attack running</h3>", unsafe_allow_html=True)
             if st.button("Start Attack"):
-                if password:
-                    # Create the output folder if it does not exist
-                    if not os.path.exists(output_folder):
-                        os.makedirs(output_folder)
 
-                    # Extract the script name minus the .py extension
-                    script_name = os.path.basename(attack_script).replace(".py", "")
-                    logging.info(f'Script name: {script_name}')
+                # Create the output folder if it does not exist
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
 
-                    # Start the attack and generate the log filename
-                    filename = os.path.join(output_folder, f'{script_name}.{interface_a}.{duration}.{sleep}.csv')
-                    create_log_file(filename)
+                # Extract the script name minus the .py extension
+                script_name = os.path.basename(attack_script).replace(".py", "")
+                logging.info(f'Script name: {script_name}')
 
-                    # Call the attack function
-                    logging.info(f'Calling start_attack, is_running = {st.session_state.is_running}')
-                    st.session_state.terminating = False
-                    start_attack(attack_script, interface_a, duration, sleep, filename, password)
-                    st.rerun()
-                else:
-                    st.error("Please fill in all fields.")
+                # Start the attack and generate the log filename
+                filename = os.path.join(output_folder, f'{script_name}.{interface_a}.{duration}.{sleep}.csv')
+                create_log_file(filename)
+
+                # Call the attack function
+                logging.info(f'Calling start_attack, is_running = {st.session_state.is_running}')
+                st.session_state.terminating = False
+                start_attack(attack_script, interface_a, duration, sleep, filename)
+                st.rerun()
 
 
         # Add a spinning indicator when the attack is running
@@ -194,46 +205,52 @@ def main():
                     # logging.info(f'Completed stop_attack, is_running = {st.session_state.is_running}')
                     st.rerun()
 
+    # Column 1 SSH credentials
+    ssh_host = "10.188.57.241"
+    ssh_user = "orantestbed"
+    ssh_password = "op3nran"
+
     with col1:
         st.markdown("### Configure Monitor")
         # Input fields for each argument
-        timeout = st.text_input("Timeout (in seconds, leave blank for continuous)", help="Leave blank to run continuously")
-        model_path = st.text_input("Model weights path", value="path/to/your/model.weights",
+        timeout = st.text_input("Timeout (in seconds, leave blank for continuous)",
+                                help="Leave blank to run continuously")
+        model_path = st.text_input("Model weights path",
+                                   value="s-plane_security/Transformer/best_model_tr.3.40.pth",
                                    help="Enter the full path to the model weights file")
-        interface = st.text_input("Network interface to listen on", value="eth0",
+        interface = st.text_input("Network interface to listen on", value="enp1s0f1np1",
                                   help="Enter the network interface to listen on")
-
 
         # Button to run the script
         if st.button("Start TIMESAFE Detection"):
             # Construct the command with the provided inputs
-            command = [
-                "python3", "pipeline_demo2.py",
-                "-m", model_path,
-                "-i", interface
-            ]
-            # Add timeout only if greater than 0 (not continuous)
+            command = f"python3 s-plane_security/pipeline_demo2.py -m {model_path} -i {interface}"
             if timeout:
-                command.extend(["-t", str(timeout)])
-
+                command += f" -t {timeout}"
 
             # Display the command to be run
-            st.write("Running command:", " ".join(command))
+            st.write("Running command on remote server:", command)
 
             # Placeholder for status updates
             status_placeholder = st.empty()
 
             try:
-                # Start the subprocess with Popen to read output in real-time
-                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                # Initialize SSH client
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+                # Connect to the remote server
+                ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
+
+                # Execute the command on the remote server
+                stdin, stdout, stderr = ssh.exec_command(command)
 
                 # Read the process output continuously
                 while True:
-                    # Read a line of output
-                    output_line = process.stdout.readline()
+                    output_line = stdout.readline()
 
                     # If the process has terminated and no output is left, break the loop
-                    if output_line == '' and process.poll() is not None:
+                    if output_line == '' and stdout.channel.exit_status_ready():
                         break
 
                     # Check for the output containing the predicted label
@@ -261,13 +278,15 @@ def main():
 
             finally:
                 # If the process ends, handle exit status and errors
-                return_code = process.poll()
-                if return_code:
-                    st.error(f"Error: {process.stderr.read()}")
+                return_code = stdout.channel.recv_exit_status()
+                if return_code != 0:
+                    st.error(f"Error: {stderr.read().decode()}")
                 else:
                     st.success("Process completed successfully.")
-                process.stdout.close()
-                process.stderr.close()
+
+                # Close the SSH connection
+                ssh.close()
+
 
 if __name__ == "__main__":
     main()
