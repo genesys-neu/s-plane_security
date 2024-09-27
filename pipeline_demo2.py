@@ -133,7 +133,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
-                start = time.time()
+                # start = time.time()
 
                 if first_run:
                     # Read the global header only once
@@ -143,8 +143,8 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                 new_data = f.read()
                 if new_data:
-                    print(f'Took {1000*(time.time()-start)} ms to read')
-                    start = time.time()
+                    # print(f'Took {1000*(time.time()-start)} ms to read')
+                    # start = time.time()
                     # Append the new data to the buffer
                     # print("new data")
                     packet_buffer += new_data
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set the desired_sequence_length based on the command-line argument
-    #desired_sequence_length = args.length SIMONE COMMENTED BECAUSE NOT USED AND GENERATES AN ERROR
+    # desired_sequence_length = args.length SIMONE COMMENTED BECAUSE NOT USED AND GENERATES AN ERROR
 
     # Path to the file where tcpdump will save packets
     pcap_file_path = "/tmp/ptp_packets.pcap"
@@ -255,15 +255,15 @@ if __name__ == "__main__":
 
     # Initialize and use your model with the extracted parameters
     slice_size_match = re.findall(r'\.(\d+)', args.model)
-    model = None #SIMONE Initially declared model
-    slice_length = None #SIMONE Initially declared model
+    model = None  #SIMONE Initially declared model
+    slice_length = None  #SIMONE Initially declared model
     if len(slice_size_match) == 2:
         slice_length = int(slice_size_match[1])
         n_heads = int(slice_size_match[0])
         print(f'Using Transformer with slice size {slice_length} and {n_heads} heads')
         model = TransformerNN(slice_len=slice_length, nhead=n_heads).to(device)
         try:
-            #SIMONE add the map_location since without this parameter it raises an error if CPU is used 
+            # SIMONE add the map_location since without this parameter it raises an error if CPU is used
             model.load_state_dict(torch.load(args.model, map_location=device))
         except FileNotFoundError:
             print(f"Model weights file '{args.model}' not found.")
