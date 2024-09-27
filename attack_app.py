@@ -173,15 +173,15 @@ def stop_attack():
 
 
 def main():
-    col1, col2, col3 = st.columns([1, 1, 1])
+    col1, col2, col3 = st.columns([.3, .4, .3], vertical_alignment="center")
 
     # Replace 'logo1.png' and 'logo2.png' with the paths or URLs to your logos
     with col1:
-        st.image('Images/NEU_logo.png', width=200)
+        st.image('Images/purdue_logo.png')
     with col2:
-        st.image('Images/purdue_logo.png', width=200)
+        st.image('Images/NEU_logo.png')
     with col3:
-        st.image('Images/UTA_logo.png', width=200)
+        st.image('Images/UTA_logo.png')
 
     # Streamlit UI with formatted title using HTML
     st.markdown(

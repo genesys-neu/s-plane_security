@@ -10,7 +10,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
     logging.StreamHandler()
 ])
 
+
 def main():
+    col1, col2, col3 = st.columns([.3, .4, .3], vertical_alignment="center")
+
+    # Replace 'logo1.png' and 'logo2.png' with the paths or URLs to your logos
+    with col1:
+        st.image('Images/purdue_logo.png')
+    with col2:
+        st.image('Images/NEU_logo.png')
+    with col3:
+        st.image('Images/UTA_logo.png')
+
     # Streamlit UI with formatted title using HTML
     st.markdown(
         "<h1 style='text-align: center;'>TIMESAFE:"
@@ -19,7 +30,11 @@ def main():
         unsafe_allow_html=True
     )
 
+    # Add vertical space
+    st.markdown("<br>", unsafe_allow_html=True)  # This adds two line breaks for vertical space
+
     st.markdown("<h3 style='text-align: center;'>Monitor Configuration</h1>", unsafe_allow_html=True)
+
     ssh_host = "10.188.57.241"
     ssh_user = "orantestbed"
     ssh_password = "op3nran"
@@ -32,13 +47,13 @@ def main():
     interface = st.text_input("Network interface to listen on", value="enp1s0f1np1",
                                help="Enter the network interface to listen on")
 
+    status_placeholder = st.empty()
     if st.button("Start TIMESAFE Detection"):
         command = f"python3 s-plane_security/pipeline_demo2.py -m {model_path} -i {interface}"
         if timeout:
             command += f" -t {timeout}"
 
         st.write("Running command on remote server:", command)
-        status_placeholder = st.empty()
 
         try:
             ssh = paramiko.SSHClient()
@@ -73,6 +88,26 @@ def main():
                 st.success("Process completed successfully.")
 
             ssh.close()
+
+    # Author footnote
+    author_text = """
+    <p style='font-size: 12px; text-align: center;'>
+    Joshua Groen, Simone Di Valerio<sup>&dagger;</sup>, Imtiaz Karim<sup>&Dagger;</sup>, Davide Villa,
+    Yiwei Zhang<sup>&Dagger;</sup>, Leonardo Bonati, Michele Polese, Salvatore D'Oro,<br>
+    Tommaso Melodia, Elisa Bertino<sup>&Dagger;</sup>, Francesca Cuomo<sup>&dagger;</sup>, Kaushik Chowdhury<sup>§</sup>
+    </p>
+    <p style='font-size: 12px; text-align: center;'>
+    Northeastern University &nbsp;&nbsp; <sup>&dagger;</sup>Sapienza University of Rome &nbsp;&nbsp; 
+    <sup>&Dagger;</sup>Purdue University &nbsp;&nbsp; <sup>§</sup>University of Texas at Austin
+    </p>
+    """
+
+    # Add vertical space
+    st.markdown("<br><br>", unsafe_allow_html=True)  # This adds two line breaks for vertical space
+
+    # Display the author footnote at the bottom
+    st.markdown(author_text, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
