@@ -32,7 +32,6 @@ def start_tcpdump(file_path, interface):
         except subprocess.CalledProcessError as e:
             print(f"Failed to remove the file: {e}")
 
-
     tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
@@ -69,7 +68,7 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
-            # print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
+            print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
             continue
@@ -102,7 +101,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
                 print("Predicted label:", label)
                 # Adjust sliding window size based on queue size
                 queue_size = preprocessed_queue.qsize()
-                # print(f'Inference queue length is {queue_size}')
+                print(f'Inference queue length is {queue_size}')
                 window_size = 2
                 # if queue_size <= 2:
                 #     window_size = 2
@@ -199,7 +198,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                             # Reset combined_data to include the global header
                             combined_data = pcap_global_header + packet_buffer
-                            # print(f'Packet queue in acquisition: {packet_queue.qsize()}')
+                            print(f'Packet queue in acquisition: {packet_queue.qsize()}')
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
