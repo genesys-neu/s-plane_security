@@ -101,7 +101,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
                 print("Predicted label:", label)
                 # Adjust sliding window size based on queue size
                 queue_size = preprocessed_queue.qsize()
-                print(f'Inference queue length is {queue_size}')
+                # print(f'Inference queue length is {queue_size}')
                 window_size = 2
                 # if queue_size <= 2:
                 #     window_size = 2
@@ -180,7 +180,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(float(packet.time - initial_time))
                                 # start = time.time()
                                 packet_queue.put(ptp_info, timeout=0.1)
-                                print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
+                                # print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
