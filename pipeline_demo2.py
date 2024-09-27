@@ -180,7 +180,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(float(packet.time - initial_time))
                                 # start = time.time()
                                 packet_queue.put(ptp_info, timeout=0.1)
-                                print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue}')
+                                print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
