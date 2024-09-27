@@ -1,7 +1,14 @@
 import time
 import streamlit as st
 import paramiko
+import logging
 
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
+    logging.FileHandler("attack_app.log"),
+    logging.StreamHandler()
+])
 
 def main():
     # Streamlit UI with formatted title using HTML
@@ -42,6 +49,7 @@ def main():
 
             while True:
                 output_line = stdout.readline()
+                logging.info(f'Output: {output_line}')
                 if output_line == '' and stdout.channel.exit_status_ready():
                     break
 

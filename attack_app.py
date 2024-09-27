@@ -21,6 +21,8 @@ if 'terminating' not in st.session_state:
     st.session_state.terminating = False
 if 'attack_pid' not in st.session_state:
     st.session_state.attack_pid = None  # To store the PID of the remote attack process
+if 'script_name' not in st.session_state:
+    st.session_state.script_name = None
 
 
 def start_attack(attack, interface, duration, sleep, filename):
@@ -102,6 +104,24 @@ def stop_attack():
             # Command to kill the process using the stored PID
             kill_command = f"echo {remote_password} | sudo -S kill -9 {st.session_state.attack_pid}"
             ssh.exec_command(kill_command)
+
+            # Use `pgrep` to find all processes related to the script_name
+            find_process_command = f"pgrep -f {st.session_state.script_name}"
+            stdin, stdout, stderr = ssh.exec_command(find_process_command)
+            pids = stdout.read().decode().strip().split()
+
+            if pids:
+                logging.info(f"Found PIDs: {pids}")
+                for pid in pids:
+                    # Kill each process found with the script_name
+                    kill_command = f"echo {remote_password} | sudo -S kill -9 {pid}"
+                    ssh.exec_command(kill_command)
+                    logging.info(f"Sent kill command for PID: {pid}")
+                st.success("Attack stopped successfully.")
+            else:
+                st.warning(f"No running processes found for {st.session_state.script_name}.")
+                logging.warning(f"No PIDs found for {st.session_state.script_name}")
+
             logging.info(f"Sent kill command for PID: {st.session_state.attack_pid}")
 
             st.session_state.is_running = False
@@ -161,11 +181,11 @@ def main():
         st.markdown("<h3 style='color:green;'>🟢 No attack running</h3>", unsafe_allow_html=True)
         if st.button("Start Attack"):
             # Extract the script name minus the .py extension
-            script_name = os.path.basename(attack_script).replace(".py", "")
-            logging.info(f'Script name: {script_name}')
+            st.session_state.script_name = os.path.basename(attack_script).replace(".py", "")
+            logging.info(f'Script name: {st.session_state.script_name}')
 
             # Start the attack and generate the log filename
-            filename = f'{script_name}.{interface_a}.{duration}.{sleep}.csv'
+            filename = f'{st.session_state.script_name}.{interface_a}.{duration}.{sleep}.csv'
             logging.info(f'Filename is {filename}')
 
             # Call the attack function
