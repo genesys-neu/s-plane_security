@@ -3,12 +3,121 @@ import streamlit as st
 import paramiko
 import logging
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
     logging.FileHandler("attack_app.log"),
     logging.StreamHandler()
 ])
+
+# Global variables to manage the attack process and status
+if 'is_running' not in st.session_state:
+    st.session_state.is_running = False
+if 'terminating' not in st.session_state:
+    st.session_state.terminating = False
+if 'predicted_label' not in st.session_state:
+    st.session_state.predicted_label = None
+
+
+def start_monitor(model_path, interface, timeout):
+    ssh_host = "10.188.57.241"
+    ssh_user = "orantestbed"
+    ssh_password = "op3nran"
+
+    command = f"python3 s-plane_security/pipeline_demo2.py -m {model_path} -i {interface}"
+    if timeout:
+        command += f" -t {timeout}"
+
+    st.write("Running command on remote server:", command)
+
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
+
+        stdin, stdout, stderr = ssh.exec_command(command)
+
+        # Stream real-time output and update UI
+        status_placeholder = st.empty()
+        while st.session_state.is_running:
+            output_line = stdout.readline()
+            logging.info(f'Output: {output_line}')
+            if output_line == '' and stdout.channel.exit_status_ready():
+                break
+
+            if "Predicted label:" in output_line:
+                predicted_label = int(output_line.strip().split()[-1])
+                if predicted_label == 0:
+                    status_placeholder.markdown("<h3 style='color:green;'>🟢 SAFE - No Attack detected</h3>",
+                                                unsafe_allow_html=True)
+                elif predicted_label == 1:
+                    status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
+                                                unsafe_allow_html=True)
+
+            time.sleep(0.04)
+
+    except Exception as e:
+        st.error(f"Error starting attack on remote server: {e}")
+        st.session_state.is_running = False
+        logging.error(f"Exception in start_attack: {e}")
+
+    finally:
+        return_code = stdout.channel.recv_exit_status()
+        if return_code != 0:
+            st.error(f"Error: {stderr.read().decode()}")
+        else:
+            st.success("Process completed successfully.")
+
+        ssh.close()
+        st.session_state.is_running = False  # Set to False when the process ends
+
+
+def stop_monitor():
+    logging.info("Attempting to stop the attack...")
+
+    if st.session_state.is_running:
+        remote_host = "10.188.57.241"  # Replace with the actual remote server address
+        remote_user = "orantestbed"  # Replace with the actual remote user
+        remote_password = "op3nran"  # Replace with the actual remote user's password
+
+        try:
+            # Initialize SSH client
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            # Connect to the remote server
+            ssh.connect(remote_host, username=remote_user, password=remote_password)
+
+            # Use `pgrep` to find all processes related to the script_name
+            find_process_command = f"pgrep -f pipeline_demo2"
+            stdin, stdout, stderr = ssh.exec_command(find_process_command)
+            pids = stdout.read().decode().strip().split()
+
+            if pids:
+                logging.info(f"Found PIDs: {pids}")
+                for pid in pids:
+                    # Kill each process found with the script_name
+                    kill_command = f"echo {remote_password} | sudo -S kill -9 {pid}"
+                    ssh.exec_command(kill_command)
+                    logging.info(f"Sent kill command for PID: {pid}")
+                st.success("Attack stopped successfully.")
+            else:
+                st.warning(f"No running processes found.")
+                logging.warning(f"No PIDs found")
+
+            st.session_state.is_running = False
+            st.session_state.terminating = False
+            st.success("Attack stopped successfully.")
+
+        except Exception as e:
+            st.error(f"Error stopping the attack: {e}")
+            logging.error(f"Exception in stop_attack: {e}")
+
+        finally:
+            # Close the SSH connection
+            ssh.close()
+    else:
+        st.warning("No attack is currently running.")
+        logging.warning("Stop attack attempted, but no attack is running.")
 
 
 def main():
@@ -35,59 +144,43 @@ def main():
 
     st.markdown("<h3 style='text-align: center;'>Monitor Configuration</h1>", unsafe_allow_html=True)
 
-    ssh_host = "10.188.57.241"
-    ssh_user = "orantestbed"
-    ssh_password = "op3nran"
-
-    timeout = st.text_input("Timeout (in seconds, leave blank for continuous)",
-                             help="Leave blank to run continuously")
+    timeout = st.text_input("Timeout (in seconds, leave blank for continuous)", help="Leave blank to run continuously")
     model_path = st.text_input("Model weights path",
-                                value="s-plane_security/Transformer/best_model_tr.3.40.pth",
-                                help="Enter the full path to the model weights file")
+                               value="s-plane_security/Transformer/best_model_tr.3.40.pth",
+                               help="Enter the full path to the model weights file")
     interface = st.text_input("Network interface to listen on", value="enp1s0f1np1",
-                               help="Enter the network interface to listen on")
+                              help="Enter the network interface to listen on")
 
-    status_placeholder = st.empty()
-    if st.button("Start TIMESAFE Detection"):
-        command = f"python3 s-plane_security/pipeline_demo2.py -m {model_path} -i {interface}"
-        if timeout:
-            command += f" -t {timeout}"
+    # status_placeholder = st.empty()
+    logging.info(f'Current session state: {st.session_state.is_running}')
 
-        st.write("Running command on remote server:", command)
+    bcol1, bcol2 = st.columns([.3, .7])
+    with bcol1:
+        if st.button("Start TIMESAFE Detection"):
+            if not st.session_state.is_running:
+                st.session_state.is_running = True
+                logging.info(f'updated session state: {st.session_state.is_running}')
+                # time.sleep(5)
+                # st.rerun()
+        logging.info(f'Stop button session state: {st.session_state.is_running}')
 
-        try:
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
+    with bcol2:
+        nested_col1, nested_col2 = st.columns(2, gap="large")
+        with nested_col1:
+            logging.info(f'Current terminating session state: {st.session_state.terminating}')
+            if st.button("Stop TIMESAFE Detection"):
+                if not st.session_state.terminating and st.session_state.is_running:
+                    st.session_state.terminating = True
+                    # st.rerun()
+        with nested_col2:
+            if st.session_state.terminating:
+                with st.spinner('Terminating Attack...'):
+                    stop_monitor()
+                    time.sleep(2)
+                st.rerun()
 
-            stdin, stdout, stderr = ssh.exec_command(command)
-
-            while True:
-                output_line = stdout.readline()
-                logging.info(f'Output: {output_line}')
-                if output_line == '' and stdout.channel.exit_status_ready():
-                    break
-
-                if "Predicted label:" in output_line:
-                    predicted_label = int(output_line.strip().split()[-1])
-                    if predicted_label == 0:
-                        status_placeholder.markdown("<h3 style='color:green;'>🟢 SAFE - No Attack detected</h3>", unsafe_allow_html=True)
-                    elif predicted_label == 1:
-                        status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>", unsafe_allow_html=True)
-
-                time.sleep(0.1)
-
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
-
-        finally:
-            return_code = stdout.channel.recv_exit_status()
-            if return_code != 0:
-                st.error(f"Error: {stderr.read().decode()}")
-            else:
-                st.success("Process completed successfully.")
-
-            ssh.close()
+    if st.session_state.is_running:
+        start_monitor(model_path, interface, timeout)
 
     # Author footnote
     author_text = """
