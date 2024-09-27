@@ -68,7 +68,7 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
-            print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
+            # print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
             continue
@@ -133,7 +133,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
-                # start = time.time()
+                start = time.time()
 
                 if first_run:
                     # Read the global header only once
@@ -143,7 +143,8 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                 new_data = f.read()
                 if new_data:
-                    # print(f'Took {1000*(time.time()-start)} ms to read')
+                    print(f'Took {1000*(time.time()-start)} ms to read')
+                    start = time.time()
                     # Append the new data to the buffer
                     # print("new data")
                     packet_buffer += new_data
@@ -179,6 +180,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(float(packet.time - initial_time))
                                 # start = time.time()
                                 packet_queue.put(ptp_info, timeout=0.1)
+                                print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue}')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
                                 initial_time = packet.time
@@ -198,7 +200,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                             # Reset combined_data to include the global header
                             combined_data = pcap_global_header + packet_buffer
-                            print(f'Packet queue in acquisition: {packet_queue.qsize()}')
+                            # print(f'Packet queue in acquisition: {packet_queue.qsize()}')
 
                         except Scapy_Exception as e:
                             print(f'Exception {e}, waiting for more data')
