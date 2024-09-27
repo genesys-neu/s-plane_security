@@ -4,6 +4,8 @@ import os
 import random
 import logging
 import paramiko
+import itertools
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
@@ -23,6 +25,29 @@ if 'attack_pid' not in st.session_state:
     st.session_state.attack_pid = None  # To store the PID of the remote attack process
 if 'script_name' not in st.session_state:
     st.session_state.script_name = None
+
+# List of images to display
+image_files_announce = ['Images/spoofing1.png', 'Images/spoofing2.png', 'Images/spoofing3.png', 'Images/spoofing4.png']
+
+
+# Function to display images continuously while an attack is running
+def display_cycling_images():
+    # Create an empty container to hold the image
+    image_placeholder = st.empty()
+
+    # Create an iterator for the images
+    if st.session_state.script_name == 'Announce_Attack':
+        image_iterator = itertools.cycle(image_files_announce)
+
+    while st.session_state.is_running:  # Keep looping while the attack is running
+        # Get the next image from the iterator
+        current_image = next(image_iterator)
+
+        # Update the placeholder with the current image
+        image_placeholder.image(current_image, width=300)
+
+        # Pause for a short period before showing the next image
+        time.sleep(1)  # Adjust the sleep time as needed
 
 
 def start_attack(attack, interface, duration, sleep, filename):
@@ -141,6 +166,16 @@ def stop_attack():
 
 
 def main():
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    # Replace 'logo1.png' and 'logo2.png' with the paths or URLs to your logos
+    with col1:
+        st.image('Images/NEU_logo.png', width=200)
+    with col2:
+        st.image('Images/purdue_logo.png', width=200)
+    with col3:
+        st.image('Images/UTA_logo.png', width=200)
+
     # Streamlit UI with formatted title using HTML
     st.markdown(
         "<h1 style='text-align: center;'>TIMESAFE:</h1>"
@@ -150,6 +185,10 @@ def main():
         "<u>E</u>nvironments</div>",
         unsafe_allow_html=True
     )
+
+    # Add vertical space
+    st.markdown("<br>", unsafe_allow_html=True)  # This adds two line breaks for vertical space
+
     st.markdown("<h3 style='text-align: center;'>Attack Configuration</h3>", unsafe_allow_html=True)
 
     interface_a = 'enp1s0f1np1'
@@ -177,38 +216,66 @@ def main():
     elif selected_attack == "Spoofing Attack":
         attack_script = os.path.join(directory, "Announce_Attack.py")
 
+    col1a, col2a = st.columns([1, 1])
+
     if not st.session_state.is_running:
-        st.markdown("<h3 style='color:green;'>🟢 No attack running</h3>", unsafe_allow_html=True)
-        if st.button("Start Attack"):
-            # Extract the script name minus the .py extension
-            st.session_state.script_name = os.path.basename(attack_script).replace(".py", "")
-            logging.info(f'Script name: {st.session_state.script_name}')
+        with col1a:
+            st.markdown("<h3 style='color:green;'>🟢 No attack running</h3>", unsafe_allow_html=True)
+            if st.button("Start Attack"):
+                # Extract the script name minus the .py extension
+                st.session_state.script_name = os.path.basename(attack_script).replace(".py", "")
+                logging.info(f'Script name: {st.session_state.script_name}')
 
-            # Start the attack and generate the log filename
-            filename = f'{st.session_state.script_name}.{interface_a}.{duration}.{sleep}.csv'
-            logging.info(f'Filename is {filename}')
+                # Start the attack and generate the log filename
+                filename = f'{st.session_state.script_name}.{interface_a}.{duration}.{sleep}.csv'
+                logging.info(f'Filename is {filename}')
 
-            # Call the attack function
-            logging.info(f'Calling start_attack, is_running = {st.session_state.is_running}')
-            st.session_state.terminating = False
-            start_attack(attack_script, interface_a, duration, sleep, filename)
-            time.sleep(5)
-            st.rerun()  # Use experimental_rerun for immediate rerun
+                # Call the attack function
+                logging.info(f'Calling start_attack, is_running = {st.session_state.is_running}')
+                st.session_state.terminating = False
+                start_attack(attack_script, interface_a, duration, sleep, filename)
+                time.sleep(5)
+                st.rerun()  # Use experimental_rerun for immediate rerun
+        with col2a:
+            st.image('Images/spoofing0.png', width=300)
 
     # Add a spinning indicator when the attack is running
     if st.session_state.is_running:
-        st.markdown("<h3 style='color:red;'>🔴 Attack is running...</h3>", unsafe_allow_html=True)
-        nested_col1, nested_col2 = st.columns(2, gap="large")
-        with nested_col1:
+        with col1a:
+            st.markdown("<h3 style='color:red;'>🔴 Attack is running...</h3>", unsafe_allow_html=True)
+            nested_col1, nested_col2 = st.columns(2, gap="large")
+            with nested_col1:
+                if not st.session_state.terminating:
+                    if st.button("Stop Attack"):
+                        st.session_state.terminating = True
+            with nested_col2:
+                if st.session_state.terminating:
+                    with st.spinner('Terminating Attack...'):
+                        stop_attack()
+                    st.rerun()
+        with col2a:
             if not st.session_state.terminating:
-                if st.button("Stop Attack"):
-                    st.session_state.terminating = True
-        with nested_col2:
-            if st.session_state.terminating:
-                with st.spinner('Terminating Attack...'):
-                    stop_attack()
-                st.rerun()
+                display_cycling_images()
 
+
+    # Author footnote
+    author_text = """
+    <p style='font-size: 12px; text-align: center;'>
+    Joshua Groen, Simone Di Valerio<sup>&dagger;</sup>, Imtiaz Karim<sup>&Dagger;</sup>, Davide Villa,
+    Yiwei Zhang<sup>&Dagger;</sup>, Leonardo Bonati, Michele Polese, Salvatore D'Oro,<br>
+    Tommaso Melodia, Elisa Bertino<sup>&Dagger;</sup>, Francesca Cuomo<sup>&dagger;</sup>, Kaushik Chowdhury<sup>§</sup>
+    </p>
+    <p style='font-size: 12px; text-align: center;'>
+    Northeastern University &nbsp;&nbsp; <sup>&dagger;</sup>Sapienza University of Rome &nbsp;&nbsp; 
+    <sup>&Dagger;</sup>Purdue University &nbsp;&nbsp; <sup>§</sup>University of Texas at Austin
+    </p>
+    """
+
+    # Add vertical space
+    st.markdown("<br><br>", unsafe_allow_html=True)  # This adds two line breaks for vertical space
+
+    # Display the author footnote at the bottom
+    st.markdown(author_text, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
