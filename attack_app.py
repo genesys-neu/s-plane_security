@@ -28,6 +28,8 @@ if 'script_name' not in st.session_state:
 
 # List of images to display
 image_files_announce = ['Images/spoofing1.png', 'Images/spoofing2.png', 'Images/spoofing3.png', 'Images/spoofing4.png']
+image_files_replay = ['Images/replay1.png', 'Images/replay2.png', 'Images/replay3.png']
+image_files_replay_sync = ['Images/replay1.png', 'Images/replay2.png', 'Images/replay_sync1.png']
 
 
 # Function to display images continuously while an attack is running
@@ -38,6 +40,10 @@ def display_cycling_images():
     # Create an iterator for the images
     if st.session_state.script_name == 'Announce_Attack':
         image_iterator = itertools.cycle(image_files_announce)
+    elif st.session_state.script_name == 'Sync_Attack':
+        image_iterator = itertools.cycle(image_files_replay_sync)
+    elif st.session_state.script_name == 'Sync_FollowUp_Attack':
+        image_iterator = itertools.cycle(image_files_replay)
 
     while st.session_state.is_running:  # Keep looping while the attack is running
         # Get the next image from the iterator
@@ -94,7 +100,8 @@ def start_attack(attack, interface, duration, sleep, filename):
             pid = stdout.read().decode().strip()
             if pid:
                 st.session_state.attack_pid = pid
-                st.write(f'Starting attack: {os.path.basename(attack)} with PID {pid}')
+                st.write(f'Starting attack: {os.path.basename(attack)} with {duration}s attack followed by '
+                         f'{sleep}s recovery. The PID is {pid}.')
                 logging.info(f'Started attack with PID: {pid}')
             else:
                 st.error("Failed to retrieve PID. Attack may not have started.")
