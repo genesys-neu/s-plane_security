@@ -18,17 +18,17 @@ mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
 index = 0  # Index to map MAC addresses
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("./tmp/pipline.log", mode='w'),  # 'a' for appending to the file
-        logging.StreamHandler()
-    ]
-)
-
-# Example log messages
-logging.info("Logger has been configured.")
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     handlers=[
+#         logging.FileHandler("./tmp/pipline.log", mode='w'),  # 'a' for appending to the file
+#         logging.StreamHandler()
+#     ]
+# )
+#
+# # Example log messages
+# logging.info("Logger has been configured.")
 
 
 def start_tcpdump(file_path, interface):
