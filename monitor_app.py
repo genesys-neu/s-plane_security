@@ -105,10 +105,10 @@ def start_monitor(model_path, interface, timeout):
                 logging.info(f'Exited output: {output_line}')
                 st.session_state.is_running = False
                 break
-            elif stdout.channel.exit_status_ready():
-                logging.info(f'Unexpected output: {output_line}')
-                st.session_state.is_running = False
-                break
+            # elif stdout.channel.exit_status_ready():
+            #     logging.info(f'Unexpected output: {output_line}')
+            #     st.session_state.is_running = False
+            #     break
 
             #time.sleep(0.04)
 
