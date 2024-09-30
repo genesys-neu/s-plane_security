@@ -260,7 +260,7 @@ if __name__ == "__main__":
     # desired_sequence_length = args.length SIMONE COMMENTED BECAUSE NOT USED AND GENERATES AN ERROR
 
     # Path to the file where tcpdump will save packets
-    pcap_file_path = "/tmp/ptp_packets.pcap"
+    pcap_file_path = "./tmp/ptp_packets.pcap"
 
     # Start tcpdump on the specified interface
     tcpdump_process = start_tcpdump(pcap_file_path, args.interface)
