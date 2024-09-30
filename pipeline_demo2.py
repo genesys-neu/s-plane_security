@@ -149,14 +149,14 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
-                logging.info(f'offset = {offset}')
+                # logging.info(f'offset = {offset}')
                 # start = time.time()
 
                 if first_run:
                     # Read the global header only once
                     pcap_global_header = f.read(24)  # Global header size in pcap files
                     first_run = False
-                    logging.info(f"global header: {pcap_global_header}")
+                    # logging.info(f"global header: {pcap_global_header}")
 
                 new_data = f.read()
                 if new_data:
@@ -184,9 +184,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             packet = packets[0]  # Get the first packet
                             ptp_info = []  # Prepare packet info
 
-                            if initial_time == 0:
-                                initial_time = packet.time  # Use the time from the first packet
-                                logging.info(f'initial time set to: {initial_time}')
+                            # if initial_time == 0:
+                            #     initial_time = packet.time  # Use the time from the first packet
+                            #     logging.info(f'initial time set to: {initial_time}')
 
                             if Ether in packet and packet[Ether].type == 35063:
                                 # Extract relevant PTP info
