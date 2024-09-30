@@ -7,6 +7,7 @@ import re
 import torch
 import signal  #SIMONE add signal library
 import subprocess
+import struct
 
 
 mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
@@ -283,10 +284,10 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         exit_flag.set()
 
-    # Stop tcpdump
-    if tcpdump_process:
-        tcpdump_process.terminate()  # First try to terminate
-        tcpdump_process.wait()  # Wait for the process to terminate
+    # # Stop tcpdump
+    # if tcpdump_process:
+    #     tcpdump_process.terminate()  # First try to terminate
+    #     tcpdump_process.wait()  # Wait for the process to terminate
 
     # Check and kill any remaining tcpdump processes
     kill_tcpdump_processes()
