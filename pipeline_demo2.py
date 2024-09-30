@@ -40,6 +40,9 @@ def start_tcpdump(file_path, interface):
         os.mkfifo(file_path)
         print(f"Created named pipe: {file_path}")
 
+    # Ensure the pipe has the right permissions (read/write for everyone)
+    os.chmod(pipe_path, 0o666)  # Sets the permission to rw-rw-rw-
+
     # Start tcpdump writing to the named pipe
     tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
 
