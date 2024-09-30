@@ -25,31 +25,15 @@ def start_tcpdump(file_path, interface):
     """
     password = 'op3nran'
 
-    # # Check if the file exists and remove it using sudo
-    # if os.path.exists(file_path):
-    #     try:
-    #         subprocess.run(f"echo {password} | sudo -S rm {file_path}", shell=True, check=True)
-    #         print(f"Removed existing file: {file_path}")
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Failed to remove the file: {e}")
-    #
-    # tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
-
-    # Remove the existing file if it exists
+    # Check if the file exists and remove it using sudo
     if os.path.exists(file_path):
-        os.remove(file_path)  # Ensure this file is removed
-        print(f"Removed existing file: {file_path}")
+        try:
+            subprocess.run(f"echo {password} | sudo -S rm {file_path}", shell=True, check=True)
+            print(f"Removed existing file: {file_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to remove the file: {e}")
 
-    # Create the named pipe
-    os.mkfifo(file_path)
-    print(f"Created named pipe: {file_path}")
-
-    # Ensure the pipe has the right permissions (read/write for everyone)
-    os.chmod(file_path, 0o666)  # Sets the permission to rw-rw-rw-
-
-    # Start tcpdump writing to the named pipe
     tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
-
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
 
@@ -282,7 +266,6 @@ if __name__ == "__main__":
 
     # Path to the file where tcpdump will save packets
     pcap_file_path = "/tmp/ptp_packets.pcap"
-    pcap_pipe_path = "/tmp/ptp_packets.pipe"
 
     # Start tcpdump on the specified interface
     tcpdump_process = start_tcpdump(pcap_file_path, args.interface)
@@ -311,7 +294,7 @@ if __name__ == "__main__":
 
     # Create and start the acquisition thread
     acquisition_thread = threading.Thread(target=acquisition_from_file,
-                                          args=(packet_queue, pcap_pipe_path, None))
+                                          args=(packet_queue, pcap_file_path, None))
     acquisition_thread.start()
 
     # Create and start the pre-processing thread
@@ -345,10 +328,6 @@ if __name__ == "__main__":
 
     # Check and kill any remaining tcpdump processes
     kill_tcpdump_processes()
-
-    if os.path.exists(pcap_pipe_path):
-        os.remove(pcap_pipe_path)
-        print(f"Removed named pipe: {pcap_pipe_path}")
 
     # Join the threads to wait for their completion
     acquisition_thread.join()
