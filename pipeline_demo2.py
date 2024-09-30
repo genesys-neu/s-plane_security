@@ -136,6 +136,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
     packet_buffer = b""  # Initialize packet buffer
     offset = 0  # Initialize offset to start reading from the beginning
     first_run = True  # Flag to track the first run to read the global header
+    initial_time = 0
 
     while not exit_flag.is_set():
         while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
@@ -181,7 +182,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             packet = packets[0]  # Get the first packet
                             ptp_info = []  # Prepare packet info
 
-                            if initial_time is None:
+                            if initial_time == 0:
                                 initial_time = packet.time  # Use the time from the first packet
 
                             if Ether in packet and packet[Ether].type == 35063:
