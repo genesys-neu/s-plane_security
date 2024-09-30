@@ -61,7 +61,7 @@ def pre_processing(packet_queue, preprocessed_queue):
         try:
             # Retrieve packet from packet queue
             # print(f'Packet queue in preprocessing: {packet_queue.qsize()}')
-            packet = packet_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
+            packet = packet_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
 
             # Preprocessing logic: mapping MAC addresses to indices
             # Source address processing
@@ -82,6 +82,7 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
+            logging.info(f'Preprocessed packet: {packet}')
             # print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
@@ -101,7 +102,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
     # start_time = time.time()  # Initialize start time for the timer
     while not exit_flag.is_set():
         try:
-            preprocessed_packet = preprocessed_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
+            preprocessed_packet = preprocessed_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
             sequence.append(preprocessed_packet)
 
             # print(f'Sequence length is {len(sequence)}')
@@ -184,6 +185,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
                             if initial_time == 0:
                                 initial_time = packet.time  # Use the time from the first packet
+                                logging.info(f'initial time set to: {initial_time}')
 
                             if Ether in packet and packet[Ether].type == 35063:
                                 # Extract relevant PTP info
