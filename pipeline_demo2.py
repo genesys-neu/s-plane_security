@@ -141,7 +141,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
 
     while not exit_flag.is_set():
         while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-            time.sleep(0.1)
+            time.sleep(0.05)
             print('Waiting for .pcap file')
 
         # start = time.time()
@@ -149,6 +149,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
+                logging.info(f'offset = {offset}')
                 # start = time.time()
 
                 if first_run:
