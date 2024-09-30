@@ -155,7 +155,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                     # Read the global header only once
                     pcap_global_header = f.read(24)  # Global header size in pcap files
                     first_run = False
-                    # print(f"global header: {pcap_global_header}")
+                    logging.info(f"global header: {pcap_global_header}")
 
                 new_data = f.read()
                 if new_data:
