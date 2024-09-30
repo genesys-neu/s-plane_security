@@ -11,10 +11,24 @@ from scapy.all import *
 import signal  #SIMONE add signal library
 import subprocess
 import os
+import logging
 
 
 mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
 index = 0  # Index to map MAC addresses
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("./tmp/pipline.log", mode='w'),  # 'a' for appending to the file
+        logging.StreamHandler()
+    ]
+)
+
+# Example log messages
+logging.info("Logger has been configured.")
 
 
 def start_tcpdump(file_path, interface):
@@ -180,6 +194,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(float(packet.time - initial_time))
                                 # start = time.time()
                                 packet_queue.put(ptp_info, timeout=0.1)
+                                logging.info(f'Added packet to queue: {ptp_info}')
                                 # print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
