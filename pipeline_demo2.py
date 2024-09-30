@@ -40,6 +40,10 @@ def start_tcpdump(file_path, interface):
         os.remove(file_path)  # Ensure this file is removed
         print(f"Removed existing file: {file_path}")
 
+    # Create the named pipe
+    os.mkfifo(pipe_path)
+    print(f"Created named pipe: {pipe_path}")
+
     # Ensure the pipe has the right permissions (read/write for everyone)
     os.chmod(file_path, 0o666)  # Sets the permission to rw-rw-rw-
 
