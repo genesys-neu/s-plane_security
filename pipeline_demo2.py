@@ -11,24 +11,11 @@ from scapy.all import *
 import signal  #SIMONE add signal library
 import subprocess
 import os
-import logging
 
 
 mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
 index = 0  # Index to map MAC addresses
 
-# Configure logging
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s - %(levelname)s - %(message)s',
-#     handlers=[
-#         logging.FileHandler("./tmp/pipline.log", mode='w'),  # 'a' for appending to the file
-#         logging.StreamHandler()
-#     ]
-# )
-#
-# # Example log messages
-# logging.info("Logger has been configured.")
 
 
 def start_tcpdump(file_path, interface):
@@ -61,7 +48,7 @@ def pre_processing(packet_queue, preprocessed_queue):
         try:
             # Retrieve packet from packet queue
             # print(f'Packet queue in preprocessing: {packet_queue.qsize()}')
-            packet = packet_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            packet = packet_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
 
             # Preprocessing logic: mapping MAC addresses to indices
             # Source address processing
@@ -82,7 +69,6 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
-            # logging.info(f'Preprocessed packet: {packet}')
             # print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
@@ -102,7 +88,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
     # start_time = time.time()  # Initialize start time for the timer
     while not exit_flag.is_set():
         try:
-            preprocessed_packet = preprocessed_queue.get(timeout=1)  # Timeout to prevent blocking indefinitely
+            preprocessed_packet = preprocessed_queue.get(timeout=.04)  # Timeout to prevent blocking indefinitely
             sequence.append(preprocessed_packet)
 
             # print(f'Sequence length is {len(sequence)}')
@@ -137,11 +123,10 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
     packet_buffer = b""  # Initialize packet buffer
     offset = 0  # Initialize offset to start reading from the beginning
     first_run = True  # Flag to track the first run to read the global header
-    initial_time = 0
 
     while not exit_flag.is_set():
         while not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-            time.sleep(0.05)
+            time.sleep(0.1)
             print('Waiting for .pcap file')
 
         # start = time.time()
@@ -149,14 +134,13 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
             with open(file_path, 'rb') as f:
                 # print(f"offset: {offset}")
                 f.seek(offset)
-                # logging.info(f'offset = {offset}')
                 # start = time.time()
 
                 if first_run:
                     # Read the global header only once
                     pcap_global_header = f.read(24)  # Global header size in pcap files
                     first_run = False
-                    # logging.info(f"global header: {pcap_global_header}")
+                    # print(f"global header: {pcap_global_header}")
 
                 new_data = f.read()
                 if new_data:
@@ -184,9 +168,8 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                             packet = packets[0]  # Get the first packet
                             ptp_info = []  # Prepare packet info
 
-                            # if initial_time == 0:
-                            #     initial_time = packet.time  # Use the time from the first packet
-                            #     logging.info(f'initial time set to: {initial_time}')
+                            if initial_time is None:
+                                initial_time = packet.time  # Use the time from the first packet
 
                             if Ether in packet and packet[Ether].type == 35063:
                                 # Extract relevant PTP info
@@ -197,11 +180,7 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
                                 ptp_info.append(float(packet.time - initial_time))
                                 # start = time.time()
-                                if initial_time != 0:
-                                    packet_queue.put(ptp_info, timeout=1)
-                                #     logging.info(f'Added packet to queue: {ptp_info}')
-                                # else:
-                                #     logging.info(f'Did not add this packet: {ptp_info}')
+                                packet_queue.put(ptp_info, timeout=0.1)
                                 # print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
@@ -267,7 +246,7 @@ if __name__ == "__main__":
     # desired_sequence_length = args.length SIMONE COMMENTED BECAUSE NOT USED AND GENERATES AN ERROR
 
     # Path to the file where tcpdump will save packets
-    pcap_file_path = "./tmp/ptp_packets.pcap"
+    pcap_file_path = "/tmp/ptp_packets.pcap"
 
     # Start tcpdump on the specified interface
     tcpdump_process = start_tcpdump(pcap_file_path, args.interface)
