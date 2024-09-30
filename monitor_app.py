@@ -24,6 +24,7 @@ def start_monitor(model_path, interface, timeout):
     ssh_host = "10.188.57.241"
     ssh_user = "orantestbed"
     ssh_password = "op3nran"
+    prediction_count = 0
 
     command = f"python3 s-plane_security/pipeline_demo2.py -m {model_path} -i {interface}"
     if timeout:
@@ -35,7 +36,7 @@ def start_monitor(model_path, interface, timeout):
 
     status_placeholder = st.empty()
 
-    # graph_placeholder = st.empty()
+    graph_placeholder = st.empty()
 
     terminal_output = st.empty()
 
@@ -61,7 +62,7 @@ def start_monitor(model_path, interface, timeout):
             # Update last 10 lines for scrolling terminal
             display_line = tail_process.stdout.readline()
             last_10_lines.append(display_line)
-            if len(last_10_lines) > 15:
+            if len(last_10_lines) > 13:
                 last_10_lines.pop(0)
             # Combine the lines and apply HTML/CSS styling for black background and white text
             terminal_content = "".join(last_10_lines)
@@ -74,9 +75,10 @@ def start_monitor(model_path, interface, timeout):
             terminal_output.markdown(styled_terminal, unsafe_allow_html=True)
 
             if "Predicted label:" in output_line:
+                prediction_count += 1
                 predicted_label = int(output_line.strip().split()[-1])
                 response_history.append(predicted_label)
-                if len(response_history) > 250:
+                if len(response_history) > 200:
                     response_history.pop(0)
 
                 if predicted_label == 0:
@@ -85,19 +87,26 @@ def start_monitor(model_path, interface, timeout):
                 elif predicted_label == 1:
                     status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
                                                 unsafe_allow_html=True)
-                # with graph_placeholder.container():
-                #     plt.close()
-                #     # Define custom color palette: green for 0, red for 1
-                #     colors = ['green', 'red']
-                #     # Create and display heatmap
-                #     fig, ax = plt.subplots(figsize=(20, 2))
-                #     ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
-                #                      yticklabels=False)
-                #     ax.set_xlabel('Time')
-                #     ax.set_xlabel('Time', fontsize=24)  # Adjust fontsize as needed
-                #     st.pyplot(fig)
+                if prediction_count > 5:
+                    prediction_count = 0
+                    with graph_placeholder.container():
+                        plt.close()
+                        # Define custom color palette: green for 0, red for 1
+                        colors = ['green', 'red']
+                        # Create and display heatmap
+                        fig, ax = plt.subplots(figsize=(20, 2))
+                        ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
+                                         yticklabels=False)
+                        ax.set_xlabel('Time')
+                        ax.set_xlabel('Time', fontsize=24)  # Adjust fontsize as needed
+                        st.pyplot(fig)
 
-            if stdout.channel.exit_status_ready() and "exited successfully" in output_line:
+            elif "exited" in output_line:
+                logging.info(f'Exited output: {output_line}')
+                st.session_state.is_running = False
+                break
+            elif stdout.channel.exit_status_ready():
+                logging.info(f'Unexpected output: {output_line}')
                 st.session_state.is_running = False
                 break
 

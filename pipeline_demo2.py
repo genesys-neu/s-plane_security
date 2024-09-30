@@ -38,6 +38,25 @@ def start_tcpdump(file_path, interface):
     return process
 
 
+def kill_tcpdump_processes():
+    """
+    Kills all running tcpdump processes.
+    """
+    try:
+        # Get the list of all tcpdump processes
+        result = subprocess.run("ps aux | grep tcpdump | grep -v grep", shell=True, text=True, capture_output=True)
+        if result.returncode == 0:
+            for line in result.stdout.strip().split('\n'):
+                # Extract the PID from the line
+                parts = line.split()
+                pid = parts[1]  # The second part is the PID
+                print(f"Killing tcpdump process with PID: {pid}")
+                # Kill the process
+                subprocess.run(f"sudo kill {pid}", shell=True)
+    except Exception as e:
+        print(f"Error while killing tcpdump processes: {e}")
+
+
 def pre_processing(packet_queue, preprocessed_queue):
     """
     Function representing the pre-processing thread.
@@ -303,7 +322,12 @@ if __name__ == "__main__":
         exit_flag.set()
 
     # Stop tcpdump
-    tcpdump_process.terminate()
+    if tcpdump_process:
+        tcpdump_process.terminate()  # First try to terminate
+        tcpdump_process.wait()  # Wait for the process to terminate
+
+    # Check and kill any remaining tcpdump processes
+    kill_tcpdump_processes()
 
     # Join the threads to wait for their completion
     acquisition_thread.join()
