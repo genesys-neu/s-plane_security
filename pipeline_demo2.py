@@ -82,7 +82,7 @@ def pre_processing(packet_queue, preprocessed_queue):
 
             # Place preprocessed packet into the preprocessed queue
             preprocessed_queue.put(packet)
-            logging.info(f'Preprocessed packet: {packet}')
+            # logging.info(f'Preprocessed packet: {packet}')
             # print(f'Preprocessed queue length in preprocessing: {preprocessed_queue.qsize()}')
 
         except queue.Empty:
@@ -197,8 +197,11 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 ptp_info.append(int.from_bytes(packet.load[:1], byteorder='big'))  # Message type
                                 ptp_info.append(float(packet.time - initial_time))
                                 # start = time.time()
-                                packet_queue.put(ptp_info, timeout=0.1)
-                                logging.info(f'Added packet to queue: {ptp_info}')
+                                if initial_time != 0:
+                                    packet_queue.put(ptp_info, timeout=1)
+                                    logging.info(f'Added packet to queue: {ptp_info}')
+                                else:
+                                    logging.info(f'Did not add this packet: {ptp_info}')
                                 # print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
