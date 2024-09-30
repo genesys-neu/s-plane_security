@@ -46,7 +46,7 @@ def start_tcpdump(file_path, interface):
         except subprocess.CalledProcessError as e:
             print(f"Failed to remove the file: {e}")
 
-    tcpdump_command = f"echo {password} | sudo -S tcpdump -B 32 -U -i {interface} -w {file_path} ether proto 0x88f7"
+    tcpdump_command = f"echo {password} | sudo -S tcpdump -B 16 -U -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
 
@@ -199,9 +199,9 @@ def acquisition_from_file(packet_queue, file_path, initial_time):
                                 # start = time.time()
                                 if initial_time != 0:
                                     packet_queue.put(ptp_info, timeout=1)
-                                    logging.info(f'Added packet to queue: {ptp_info}')
-                                else:
-                                    logging.info(f'Did not add this packet: {ptp_info}')
+                                #     logging.info(f'Added packet to queue: {ptp_info}')
+                                # else:
+                                #     logging.info(f'Did not add this packet: {ptp_info}')
                                 # print(f'Took {1000*(time.time()-start)} ms to process packet and add to queue')
                                 # print(f'Took {1000*(time.time()-start)} ms to place item in queue')
                                 # print(f'Adding {ptp_info} to queue')
