@@ -310,4 +310,4 @@ if __name__ == "__main__":
     pre_processing_thread.join()
     inference_thread.join()
 
-    print("Program exited successfully.")
+    print("Program exited successfully.", flush=True)

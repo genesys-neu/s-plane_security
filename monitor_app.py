@@ -35,7 +35,7 @@ def start_monitor(model_path, interface, timeout):
 
     status_placeholder = st.empty()
 
-    graph_placeholder = st.empty()
+    # graph_placeholder = st.empty()
 
     terminal_output = st.empty()
 
@@ -85,17 +85,17 @@ def start_monitor(model_path, interface, timeout):
                 elif predicted_label == 1:
                     status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
                                                 unsafe_allow_html=True)
-                with graph_placeholder.container():
-                    plt.close()
-                    # Define custom color palette: green for 0, red for 1
-                    colors = ['green', 'red']
-                    # Create and display heatmap
-                    fig, ax = plt.subplots(figsize=(20, 2))
-                    ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
-                                     yticklabels=False)
-                    ax.set_xlabel('Time')
-                    ax.set_xlabel('Time', fontsize=24)  # Adjust fontsize as needed
-                    st.pyplot(fig)
+                # with graph_placeholder.container():
+                #     plt.close()
+                #     # Define custom color palette: green for 0, red for 1
+                #     colors = ['green', 'red']
+                #     # Create and display heatmap
+                #     fig, ax = plt.subplots(figsize=(20, 2))
+                #     ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
+                #                      yticklabels=False)
+                #     ax.set_xlabel('Time')
+                #     ax.set_xlabel('Time', fontsize=24)  # Adjust fontsize as needed
+                #     st.pyplot(fig)
 
             if stdout.channel.exit_status_ready() and "exited successfully" in output_line:
                 st.session_state.is_running = False
