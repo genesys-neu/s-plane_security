@@ -99,7 +99,7 @@ def inference(preprocessed_queue, model, sequence_length, device):
                 # Forward pass
                 outputs = model(sequence_tensor)
                 label = int(torch.round(outputs).item())  # Round the predictions to 0 or 1
-                print("Predicted label:", label)
+                print(f"Predicted label: {label}", flush=True)
                 # Adjust sliding window size based on queue size
                 queue_size = preprocessed_queue.qsize()
                 # print(f'Inference queue length is {queue_size}')

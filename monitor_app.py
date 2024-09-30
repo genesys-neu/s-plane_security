@@ -49,7 +49,7 @@ def start_monitor(model_path, interface, timeout):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
 
-        stdin, stdout, stderr = ssh.exec_command(command)
+        stdin, stdout, stderr = ssh.exec_command(command, get_pty=True)
         # Start tailing the log file with subprocess
         tail_process = subprocess.Popen(['tail', '-f', './monitor_app.log'], stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE, text=True)
@@ -120,6 +120,7 @@ def start_monitor(model_path, interface, timeout):
 
         ssh.close()
         st.session_state.is_running = False  # Set to False when the process ends
+        time.sleep(5)
         st.rerun()
 
 
