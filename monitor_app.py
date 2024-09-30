@@ -2,10 +2,14 @@ import time
 import streamlit as st
 import paramiko
 import logging
+import subprocess
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
-    logging.FileHandler("attack_app.log"),
+    logging.FileHandler("monitor_app.log"),
     logging.StreamHandler()
 ])
 
@@ -14,8 +18,6 @@ if 'is_running' not in st.session_state:
     st.session_state.is_running = False
 if 'terminating' not in st.session_state:
     st.session_state.terminating = False
-if 'predicted_label' not in st.session_state:
-    st.session_state.predicted_label = None
 
 
 def start_monitor(model_path, interface, timeout):
@@ -29,31 +31,77 @@ def start_monitor(model_path, interface, timeout):
 
     st.write("Running command on remote server:", command)
 
+    # Stream real-time output and update UI
+
+    status_placeholder = st.empty()
+
+    graph_placeholder = st.empty()
+
+    terminal_output = st.empty()
+
+    # Keep track of last 10 lines for scrolling terminal
+    last_10_lines = []
+    # Keep track of last 100 responses for bar chart
+    response_history = []
+
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
 
         stdin, stdout, stderr = ssh.exec_command(command)
+        # Start tailing the log file with subprocess
+        tail_process = subprocess.Popen(['tail', '-f', './monitor_app.log'], stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE, text=True)
 
-        # Stream real-time output and update UI
-        status_placeholder = st.empty()
         while st.session_state.is_running:
             output_line = stdout.readline()
-            logging.info(f'Output: {output_line}')
-            if output_line == '' and stdout.channel.exit_status_ready():
-                break
+            logging.info(f'{output_line}')
+
+            # Update last 10 lines for scrolling terminal
+            display_line = tail_process.stdout.readline()
+            last_10_lines.append(display_line)
+            if len(last_10_lines) > 15:
+                last_10_lines.pop(0)
+            # Combine the lines and apply HTML/CSS styling for black background and white text
+            terminal_content = "".join(last_10_lines)
+            styled_terminal = f"""
+                <div style="background-color:black; color:white; padding:10px; border-radius:5px; height:200px; 
+                overflow:auto;">
+                    <pre>{terminal_content}</pre>
+                </div>
+            """
+            terminal_output.markdown(styled_terminal, unsafe_allow_html=True)
 
             if "Predicted label:" in output_line:
                 predicted_label = int(output_line.strip().split()[-1])
+                response_history.append(predicted_label)
+                if len(response_history) > 250:
+                    response_history.pop(0)
+
                 if predicted_label == 0:
                     status_placeholder.markdown("<h3 style='color:green;'>🟢 SAFE - No Attack detected</h3>",
                                                 unsafe_allow_html=True)
                 elif predicted_label == 1:
                     status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
                                                 unsafe_allow_html=True)
+                with graph_placeholder.container():
+                    plt.close()
+                    # Define custom color palette: green for 0, red for 1
+                    colors = ['green', 'red']
+                    # Create and display heatmap
+                    fig, ax = plt.subplots(figsize=(20, 2))
+                    ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
+                                     yticklabels=False)
+                    ax.set_xlabel('Time')
+                    ax.set_xlabel('Time', fontsize=24)  # Adjust fontsize as needed
+                    st.pyplot(fig)
 
-            time.sleep(0.04)
+            if stdout.channel.exit_status_ready() and "exited successfully" in output_line:
+                st.session_state.is_running = False
+                break
+
+            #time.sleep(0.04)
 
     except Exception as e:
         st.error(f"Error starting attack on remote server: {e}")
@@ -61,7 +109,10 @@ def start_monitor(model_path, interface, timeout):
         logging.error(f"Exception in start_attack: {e}")
 
     finally:
+        logging.info('Reached the finally statement')
+        tail_process.terminate()  # Ensure the tail process is terminated
         return_code = stdout.channel.recv_exit_status()
+
         if return_code != 0:
             st.error(f"Error: {stderr.read().decode()}")
         else:
@@ -69,6 +120,7 @@ def start_monitor(model_path, interface, timeout):
 
         ssh.close()
         st.session_state.is_running = False  # Set to False when the process ends
+        st.rerun()
 
 
 def stop_monitor():
@@ -146,7 +198,7 @@ def main():
 
     timeout = st.text_input("Timeout (in seconds, leave blank for continuous)", help="Leave blank to run continuously")
     model_path = st.text_input("Model weights path",
-                               value="s-plane_security/Transformer/best_model_tr.3.40.pth",
+                               value="s-plane_security/DU_model/Transformer/best_model_tr_new.3.40.pth",
                                help="Enter the full path to the model weights file")
     interface = st.text_input("Network interface to listen on", value="enp1s0f1np1",
                               help="Enter the network interface to listen on")
