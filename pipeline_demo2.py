@@ -35,10 +35,10 @@ def start_tcpdump(file_path, interface):
     #
     # tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
 
-    # Check if the named pipe exists, and create it if it doesn't
-    if not os.path.exists(file_path):
-        os.mkfifo(file_path)
-        print(f"Created named pipe: {file_path}")
+    # Remove the existing file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)  # Ensure this file is removed
+        print(f"Removed existing file: {file_path}")
 
     # Ensure the pipe has the right permissions (read/write for everyone)
     os.chmod(file_path, 0o666)  # Sets the permission to rw-rw-rw-
