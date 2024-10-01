@@ -17,7 +17,6 @@ mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
 index = 0  # Index to map MAC addresses
 
 
-
 def start_tcpdump(file_path, interface):
     """
     Starts tcpdump to capture only PTP packets on the specified interface
@@ -33,7 +32,7 @@ def start_tcpdump(file_path, interface):
         except subprocess.CalledProcessError as e:
             print(f"Failed to remove the file: {e}")
 
-    tcpdump_command = f"echo {password} | sudo -S tcpdump -B 64 -U -i {interface} -w {file_path} ether proto 0x88f7"
+    tcpdump_command = f"echo {password} | sudo -S tcpdump -B 1 -U -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
 
