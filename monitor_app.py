@@ -94,12 +94,12 @@ def start_monitor(model_path, interface, timeout):
 
 
     except Exception as e:
-        st.error(f"Error starting attack on remote server: {e}")
+        st.error(f"Error starting monitor on remote server: {e}")
         st.session_state.is_running = False
-        logging.error(f"Exception in start_attack: {e}")
+        logging.error(f"Exception in start_monitor: {e}")
 
     finally:
-        logging.info('Reached the finally statement')
+        # logging.info('Reached the finally statement')
         # tail_process.terminate()  # Ensure the tail process is terminated
         return_code = stdout.channel.recv_exit_status()
 
@@ -115,7 +115,7 @@ def start_monitor(model_path, interface, timeout):
 
 
 def stop_monitor():
-    logging.info("Attempting to stop the attack...")
+    logging.info("Attempting to stop the monitor...")
 
     if st.session_state.is_running:
         remote_host = "10.188.57.241"  # Replace with the actual remote server address
@@ -142,25 +142,25 @@ def stop_monitor():
                     kill_command = f"echo {remote_password} | sudo -S kill -9 {pid}"
                     ssh.exec_command(kill_command)
                     logging.info(f"Sent kill command for PID: {pid}")
-                st.success("Attack stopped successfully.")
+                # st.success("Monitor stopped successfully.")
             else:
                 st.warning(f"No running processes found.")
                 logging.warning(f"No PIDs found")
 
             st.session_state.is_running = False
             st.session_state.terminating = False
-            st.success("Attack stopped successfully.")
+            st.success("Monitor stopped successfully.")
 
         except Exception as e:
-            st.error(f"Error stopping the attack: {e}")
-            logging.error(f"Exception in stop_attack: {e}")
+            st.error(f"Error stopping the monitor: {e}")
+            logging.error(f"Exception in stop_monitor: {e}")
 
         finally:
             # Close the SSH connection
             ssh.close()
     else:
-        st.warning("No attack is currently running.")
-        logging.warning("Stop attack attempted, but no attack is running.")
+        st.warning("Monitor is not currently running.")
+        logging.warning("Stop monitor attempted, but the monitor is not running.")
 
 
 def main():
@@ -217,7 +217,7 @@ def main():
                     # st.rerun()
         with nested_col2:
             if st.session_state.terminating:
-                with st.spinner('Terminating Attack...'):
+                with st.spinner('Stopping Detection...'):
                     stop_monitor()
                     time.sleep(2)
                 st.rerun()
