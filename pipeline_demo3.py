@@ -148,7 +148,7 @@ def acquisition_from_tcp(packet_queue, interface, initial_time):
     with subprocess.Popen(tcpdump_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         while not exit_flag.is_set():
             # Read raw data from tcpdump
-            raw_data = proc.stdout.read(2048)  # Adjust size as needed
+            raw_data = proc.stdout.read(1024)  # Adjust size as needed
             print(f'read raw_data')
             if not raw_data:
                 continue  # No data read
@@ -162,6 +162,7 @@ def acquisition_from_tcp(packet_queue, interface, initial_time):
 
                 # Unpack the PCAP header (16 bytes)
                 pcap_header = raw_data[offset:offset + 16]
+                print(f'pcap header: {pcap_header}')
                 packet_length, = struct.unpack('I', pcap_header[8:12])  # Get the captured length
                 total_length, = struct.unpack('I', pcap_header[12:16])  # Get the total length
 
