@@ -241,7 +241,7 @@ def main():
                 logging.info(f'Calling start_attack, is_running = {st.session_state.is_running}')
                 st.session_state.terminating = False
                 start_attack(attack_script, interface_a, duration, sleep, filename)
-                time.sleep(5)
+                time.sleep(1)
                 st.rerun()  # Use experimental_rerun for immediate rerun
         with col2a:
             st.image('Images/spoofing0.png', width=300)

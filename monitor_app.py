@@ -38,10 +38,6 @@ def start_monitor(model_path, interface, timeout):
 
     graph_placeholder = st.empty()
 
-    terminal_output = st.empty()
-
-    # Keep track of last 10 lines for scrolling terminal
-    last_10_lines = []
     # Keep track of last 100 responses for bar chart
     response_history = []
 
@@ -51,28 +47,10 @@ def start_monitor(model_path, interface, timeout):
         ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
 
         stdin, stdout, stderr = ssh.exec_command(command, get_pty=True)
-        # Start tailing the log file with subprocess
-        tail_process = subprocess.Popen(['tail', '-f', './monitor_app.log'], stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE, text=True)
 
         while st.session_state.is_running:
             output_line = stdout.readline()
             logging.info(f'{output_line}')
-
-            # Update last 10 lines for scrolling terminal
-            display_line = tail_process.stdout.readline()
-            last_10_lines.append(display_line)
-            if len(last_10_lines) > 13:
-                last_10_lines.pop(0)
-            # Combine the lines and apply HTML/CSS styling for black background and white text
-            terminal_content = "".join(last_10_lines)
-            styled_terminal = f"""
-                <div style="background-color:black; color:white; padding:10px; border-radius:5px; height:200px; 
-                overflow:auto;">
-                    <pre>{terminal_content}</pre>
-                </div>
-            """
-            terminal_output.markdown(styled_terminal, unsafe_allow_html=True)
 
             if "Predicted label:" in output_line:
                 prediction_count += 1
@@ -87,12 +65,20 @@ def start_monitor(model_path, interface, timeout):
                 elif predicted_label == 1:
                     status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
                                                 unsafe_allow_html=True)
-                if prediction_count > 5:
+                if prediction_count > 20:
                     prediction_count = 0
                     with graph_placeholder.container():
                         plt.close()
-                        # Define custom color palette: green for 0, red for 1
-                        colors = ['green', 'red']
+                        # Check unique values in response_history
+                        unique_values = set(response_history)
+
+                        # Define color palette based on unique values
+                        if unique_values == {0}:
+                            colors = ['green']  # Only 0s
+                        elif unique_values == {1}:
+                            colors = ['red']  # Only 1s
+                        else:
+                            colors = ['green', 'red']  # Mix of 0s and 1s
                         # Create and display heatmap
                         fig, ax = plt.subplots(figsize=(20, 2))
                         ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
@@ -105,12 +91,7 @@ def start_monitor(model_path, interface, timeout):
                 logging.info(f'Exited output: {output_line}')
                 st.session_state.is_running = False
                 break
-            # elif stdout.channel.exit_status_ready():
-            #     logging.info(f'Unexpected output: {output_line}')
-            #     st.session_state.is_running = False
-            #     break
 
-            #time.sleep(0.04)
 
     except Exception as e:
         st.error(f"Error starting attack on remote server: {e}")
@@ -119,7 +100,7 @@ def start_monitor(model_path, interface, timeout):
 
     finally:
         logging.info('Reached the finally statement')
-        tail_process.terminate()  # Ensure the tail process is terminated
+        # tail_process.terminate()  # Ensure the tail process is terminated
         return_code = stdout.channel.recv_exit_status()
 
         if return_code != 0:
