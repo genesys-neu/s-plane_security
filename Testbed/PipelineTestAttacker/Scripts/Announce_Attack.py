@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-
+while True:
     sniffer = partial(announce_filter, interface=args.interface, duration=int(args.duration),logs = args.logs)
     sniff(iface=args.interface, stop_filter=sniffer)
     time.sleep(args.sleep)

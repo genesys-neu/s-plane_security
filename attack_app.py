@@ -173,23 +173,21 @@ def stop_attack():
 
 
 def main():
-    col1, col2, col3 = st.columns([.3, .4, .3], vertical_alignment="center")
+    col1, col2, col3 = st.columns(3, vertical_alignment="center")
 
     # Replace 'logo1.png' and 'logo2.png' with the paths or URLs to your logos
     with col1:
-        st.image('Images/purdue_logo.png')
+        st.image('Images/UTA_logo.png')
     with col2:
         st.image('Images/NEU_logo.png')
     with col3:
-        st.image('Images/UTA_logo.png')
+        st.image('Images/purdue_logo.png')
 
     # Streamlit UI with formatted title using HTML
     st.markdown(
-        "<h1 style='text-align: center;'>TIMESAFE:</h1>"
-        "<div style='text-align: center; font-size: 16px;'>"
-        "<u>T</u>iming <u>I</u>nterruption <u>M</u>onitoring and "
-        "<u>S</u>ecurity <u>A</u>ssessment for <u>F</u>ronthaul "
-        "<u>E</u>nvironments</div>",
+        "<h1 style='text-align: center;'>TIMESAFE:"
+        "<div style='text-align: center; font-size: 16px;'><u>T</u>iming <u>I</u>nterruption <u>M</u>onitoring and "
+        "<u>S</u>ecurity <u>A</u>ssessment for <u>F</u>ronthaul <u>E</u>nvironments</h1></div>",
         unsafe_allow_html=True
     )
 

@@ -32,14 +32,20 @@ args = parser.parse_args()
 sniffer = partial(sync_filter, interface = args.interface)
 
 
-
-if args.sleep != None and args.duration!=None:
-    print('Start Round')
+while True:
     start_time = time.time()
-    sniff(iface=args.interface, prn = sniffer, timeout = args.duration)
-    end_time = time.time()
+    if args.sleep != None and args.duration!=None:
+        print('Start Round')
+        start_time = time.time()
+        sniff(iface=args.interface, prn = sniffer, timeout = args.duration)
+        end_time = time.time()
+        time.sleep(args.sleep)
+        print('End round')
+    else:
+        sniff(iface=args.interface, prn=sniffer)
+        end_time = time.time()
     log_attack_start_end("Sync_FollowUp_Attack", start_time, end_time, args.logs)
     print(f"Logged Announce_Attack start: {start_time} and end: {end_time} to CSV file successfully.")
-    print('End round')
-    time.sleep(args.sleep)
+
+
 
