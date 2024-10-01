@@ -141,14 +141,14 @@ def acquisition_from_tcp(packet_queue, interface, initial_time):
     """
     # Start tcpdump to capture PTP packets without writing to a file
     tcpdump_command = [
-        'sudo', 'tcpdump', '-i', interface, '-U', '-B', '64', '-s', '0', 'ether', 'proto', '0x88F7'
+        'sudo', 'tcpdump', '-i', interface, '-U', '-B', '1', '-s', '0', 'ether', 'proto', '0x88F7'
     ]
     print(f'tcpdump command: {tcpdump_command}')
 
     with subprocess.Popen(tcpdump_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         while not exit_flag.is_set():
             # Read raw data from tcpdump
-            raw_data = proc.stdout.read(1024)  # Adjust size as needed
+            raw_data = proc.stdout.read(2048)  # Adjust size as needed
             print(f'read raw_data')
             if not raw_data:
                 continue  # No data read
