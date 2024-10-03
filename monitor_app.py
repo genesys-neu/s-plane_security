@@ -168,7 +168,7 @@ def main():
 
     # Replace 'logo1.png' and 'logo2.png' with the paths or URLs to your logos
     with col1:
-        st.image('Images/UTA_logo.png')
+        st.image('Images/UTA2_logo.png')
     with col2:
         st.image('Images/NEU_logo.png')
     with col3:
