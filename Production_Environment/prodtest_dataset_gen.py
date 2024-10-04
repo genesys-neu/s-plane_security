@@ -24,6 +24,27 @@ def map_categories(df, columns):
     return df, mapping
 
 
+def map_message_types(df):
+    # Define a mapping for the PTP message types to integers
+    message_type_mapping = {
+        'Sync': 0,
+        'Delay_Req': 1,
+        'PDelay_Req': 2,
+        'PDelay_Resp': 3,
+        'Follow_Up': 8,
+        'Delay_Resp': 9,
+        'PDelay_Resp_Follow_Up': 10,
+        'Announce': 11,
+        'Signaling': 12,
+        'Management': 13
+    }
+
+    # Map the MessageType column using the dictionary
+    df['MessageType'] = df['MessageType'].map(message_type_mapping)
+
+    return df
+
+
 def label_data(df):
     # Initialize 'Label' column with 0
     df['Label'] = 0
@@ -52,6 +73,9 @@ def load_data(input_file):
 
     # Apply mapping function to both 'Source' and 'Destination' columns simultaneously
     df, mapping = map_categories(df, ['Source', 'Destination'])
+
+    # Map the MessageType to integers
+    df = map_message_types(df)
 
     # Calculate the time interval between rows
     df['Time Interval'] = df['Time'].diff().fillna(0)
