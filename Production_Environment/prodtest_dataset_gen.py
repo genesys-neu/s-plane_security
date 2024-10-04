@@ -29,7 +29,9 @@ def label_data(df):
     df['Label'] = 0
 
     # Set 'Label' to 1 where both conditions are true
-    df.loc[(df['Source'] == 'b8:ce:f6:5e:6b:4a') & (df['Time'] >= 78.506815) & (df['Time'] <= 102.512281), 'Label'] = 1
+    # df.loc[(df['Source'] == 'b8:ce:f6:5e:6b:4a') &
+    #        (df['Time'] >= 78.506815) &
+    #        (df['Time'] <= 102.512281), 'Label'] = 1
 
     return df
 
@@ -71,9 +73,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output", default='final_dataset.csv',
                         help="output file name for the final dataset")
+    parser.add_argument("-i", "--input", default='../DataCollectionPTP/successful_announce_attack_ptp.csv',
+                        help="input file name")
     args = parser.parse_args()
 
-    input_file = "../DataCollectionPTP/successful_announce_attack_ptp.csv"
+    input_file = args.input
 
     output_file = args.output
 
