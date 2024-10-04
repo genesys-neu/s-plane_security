@@ -230,8 +230,8 @@ def load_data(file, sequence):
 
     # Separate validation and testing indices
     # Modified to increase training size: we use the same selection for validation and testing
-    valid_indices = valid_test_indices[len(valid_test_indices)]
-    test_indices = valid_test_indices[len(valid_test_indices)]
+    valid_indices = valid_test_indices
+    test_indices = valid_test_indices
 
     # Initialize lists to store training, validation, and testing data
     training_data = []
