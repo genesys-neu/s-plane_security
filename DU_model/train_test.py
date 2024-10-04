@@ -128,7 +128,7 @@ class LSTMClassifier(nn.Module):
 
 
 class TransformerNN(nn.Module):
-    def __init__(self, classes: int = 1, num_feats: int = 6, slice_len: int = 32, nhead: int = 2, nlayers: int = 2,
+    def __init__(self, classes: int = 1, num_feats: int = 6, slice_len: int = 32, nhead: int = 3, nlayers: int = 2,
                  dropout: float = 0.2, use_pos: bool = False):
         super(TransformerNN, self).__init__()
         self.norm = nn.LayerNorm(num_feats)
@@ -389,7 +389,7 @@ if __name__ == "__main__":
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
         best_val_loss = float('inf')  # Initialize the best validation loss
-        patience = 10  # Number of epochs to wait for improvement
+        patience = 15  # Number of epochs to wait for improvement
         counter = 0  # Counter for patience
 
         # Training loop with evaluation on the validation set
