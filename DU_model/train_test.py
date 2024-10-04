@@ -226,11 +226,12 @@ def load_data(file, sequence):
         chunks = [future.result() for future in futures]
 
     # Randomly select chunks for validation
-    valid_test_indices = np.random.choice(num_chunks, size=int(num_chunks * 0.2), replace=False)
+    valid_test_indices = np.random.choice(num_chunks, size=int(num_chunks * 0.1), replace=False)
 
     # Separate validation and testing indices
-    valid_indices = valid_test_indices[:len(valid_test_indices) // 2]
-    test_indices = valid_test_indices[len(valid_test_indices) // 2:]
+    # Modified to increase training size: we use the same selection for validation and testing
+    valid_indices = valid_test_indices[len(valid_test_indices)]
+    test_indices = valid_test_indices[len(valid_test_indices)]
 
     # Initialize lists to store training, validation, and testing data
     training_data = []
@@ -241,8 +242,9 @@ def load_data(file, sequence):
     for i, chunk in enumerate(chunks):
         if i in valid_indices:
             validation_data.extend(chunk.values.tolist())  # Append rows to validation_data
-        elif i in test_indices:
             testing_data.extend(chunk.values.tolist())  # Append rows to testing_data
+        # elif i in test_indices:
+            # testing_data.extend(chunk.values.tolist())  # Append rows to testing_data
         else:
             training_data.extend(chunk.values.tolist())  # Append rows to training_data
 
@@ -387,7 +389,7 @@ if __name__ == "__main__":
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
         best_val_loss = float('inf')  # Initialize the best validation loss
-        patience = 20  # Number of epochs to wait for improvement
+        patience = 10  # Number of epochs to wait for improvement
         counter = 0  # Counter for patience
 
         # Training loop with evaluation on the validation set
