@@ -1,0 +1,11 @@
+torch         # PyTorch
+pandas
+numpy         # NumPy
+scikit-learn
+seaborn
+matplotlib
+scapy
+sudo
+tcpdump
+streamlit
+paramiko
