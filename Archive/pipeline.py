@@ -105,6 +105,8 @@ def acquire_packet(packet_queue):
                 # Put ptp info into the queue
                 packet_queue.put(ptp_info)
                 initial_time = pkt.time # Update the last timestamp
+
+
     # Define the interface to sniff on
     interface = 'enp1s0f1np1' #SIMONE changed the interface from enp4s0 (attacker's interface) to enp1s0f1np1 (DU interface)
     # Create partial function to include new parameters

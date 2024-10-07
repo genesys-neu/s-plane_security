@@ -1,7 +1,7 @@
 import os
 import torch
 from torch.utils.data import DataLoader
-from train_test import load_data, PTPDataset, LSTMClassifier, TransformerNN
+from Archive.train_test import load_data, PTPDataset, LSTMClassifier, TransformerNN
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix

@@ -1,12 +1,8 @@
-import threading
 import queue
-import time
 import argparse
-from train_test import TransformerNN
-import re
+from Archive.train_test import TransformerNN
 import torch
-from functools import partial
-from scapy.all import rdpcap, PcapReader, Ether, Scapy_Exception
+from scapy.all import Ether
 from scapy.all import *
 import signal  #SIMONE add signal library
 import subprocess
