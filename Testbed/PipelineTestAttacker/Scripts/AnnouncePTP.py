@@ -106,14 +106,14 @@ class AnnouncePTP():
         self.ptp_layer = self.ptp_layer[:40] + new_value + self.ptp_layer[44:]
         self.packet = self.eth_layer / self.ptp_layer
 
-    def new_priority1(self,offset):
-        new_value = offset.to_bytes((offset.bit_length() + 7) // 8, byteorder='big')
-        self.ptp_layer = self.ptp_layer[:47]+ new_value + self.ptp_layer[48:]
+    def new_priority1(self, new_value):
+        new_value_bytes = new_value.to_bytes(1, byteorder='big')  # Always use 1 byte
+        self.ptp_layer = self.ptp_layer[:47] + new_value_bytes + self.ptp_layer[48:]
         self.packet = self.eth_layer / self.ptp_layer
 
-    def new_grandmasterClockClass(self,offset):
-        new_value = offset.to_bytes((offset.bit_length() + 7) // 8, byteorder='big')
-        self.ptp_layer = self.ptp_layer[:48]+ new_value + self.ptp_layer[49:]
+    def new_grandmasterClockClass(self, new_value):
+        new_value_bytes = new_value.to_bytes(1, byteorder='big')  # Always use 1 byte
+        self.ptp_layer = self.ptp_layer[:48] + new_value_bytes + self.ptp_layer[49:]
         self.packet = self.eth_layer / self.ptp_layer
 
     def new_grandmasterClockAccuracy(self,new_value):
@@ -125,9 +125,9 @@ class AnnouncePTP():
         self.ptp_layer = self.ptp_layer[:50]+ new_value + self.ptp_layer[52:]
         self.packet = self.eth_layer / self.ptp_layer
 
-    def new_priority2(self,offset):
-        new_value = offset.to_bytes((offset.bit_length() + 7) // 8, byteorder='big')
-        self.ptp_layer = self.ptp_layer[:52]+ new_value + self.ptp_layer[53:]
+    def new_priority2(self, new_value):
+        new_value_bytes = new_value.to_bytes(1, byteorder='big')  # Always use 1 byte
+        self.ptp_layer = self.ptp_layer[:52] + new_value_bytes + self.ptp_layer[53:]
         self.packet = self.eth_layer / self.ptp_layer
     
     def new_grandmasterClockIdentity(self,new_value):
