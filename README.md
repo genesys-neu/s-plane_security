@@ -39,10 +39,10 @@ This Streamlit GUI allows you to choose different attack parameters and execute 
 
 ## Other tools and scripts
 
-- Data Collection and Pre-processing tools are in the ./DataCollectionPTP directory
+- Data Collection and Pre-processing tools are in the ``DataCollectionPTP`` directory
 
-- All our models trained to be deployed at the DU are in the ./DU_model directory
+- All our models trained to be deployed at the DU are in the ``DU_model`` directory
 
-- The ./Testbed directory contains all our test bed scripts, including the actual attack scripts
+- The ``Testbed`` directory contains all our test bed scripts, including the actual attack scripts
 
-- The ./Production_Environment folder contains visualization tools and results from the production environment.
+- The ``Production_Environment`` folder contains visualization tools and results from the production environment.
