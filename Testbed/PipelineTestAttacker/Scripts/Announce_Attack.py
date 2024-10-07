@@ -53,6 +53,10 @@ def announce_filter(packet, interface, duration, logs):
                 new_announce.new_Ether_src(mac_address)
                 new_announce.new_ClockIdentity(clock_ID)
                 new_announce.new_grandmasterClockIdentity(master_ID)
+                new_announce.new_priority1(0)
+                new_announce.new_priority2(0)
+                new_announce.new_grandmasterClockClass(0)
+
                 start_time = time.time()
                 send_packets(new_announce, interface, duration)
                 end_time = time.time()

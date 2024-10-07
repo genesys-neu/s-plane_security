@@ -57,7 +57,7 @@ def display_cycling_images():
 
 
 def start_attack(attack, interface, duration, sleep, filename):
-    remote_host = "10.188.57.241"  # Replace with the actual remote server address
+    remote_host = "10.188.63.225"  # Replace with the actual remote server address
     remote_user = "orantestbed"  # Replace with the actual remote user
     remote_password = "op3nran"  # Replace with the actual remote user's password
 
@@ -92,7 +92,7 @@ def start_attack(attack, interface, duration, sleep, filename):
                 f"-i {interface} -d {duration} -s {sleep} -l {abs_filename} "
                 f"> /dev/null 2>&1 & echo $!"
             )
-
+            logging.info(f'attack command: {attack_command}')
             # Execute the attack command
             stdin, stdout, stderr = ssh.exec_command(attack_command)
 
@@ -121,7 +121,7 @@ def stop_attack():
     logging.info("Attempting to stop the attack...")
 
     if st.session_state.attack_pid and st.session_state.is_running:
-        remote_host = "10.188.57.241"  # Replace with the actual remote server address
+        remote_host = "10.188.63.225"  # Replace with the actual remote server address
         remote_user = "orantestbed"  # Replace with the actual remote user
         remote_password = "op3nran"  # Replace with the actual remote user's password
 
@@ -196,7 +196,7 @@ def main():
 
     st.markdown("<h3 style='text-align: center;'>Attack Configuration</h3>", unsafe_allow_html=True)
 
-    interface_a = 'enp1s0f1np1'
+    interface_a = 'enp4s0'
     output_folder = 'tmp'
     attack_duration = st.selectbox("Select Duration Test:", ["random", "fixed", "continuous"])
 
@@ -220,6 +220,7 @@ def main():
             directory, "Sync_FollowUp_Attack.py")
     elif selected_attack == "Spoofing Attack":
         attack_script = os.path.join(directory, "Announce_Attack.py")
+    logging.info(f'Attack script path: {attack_script}')
 
     col1a, col2a = st.columns([1, 1])
 
