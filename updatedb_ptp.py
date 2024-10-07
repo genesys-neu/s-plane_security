@@ -25,7 +25,7 @@ INFLUX_URL = 'http://10.112.100.101'    # Influxdb url
 INFLUX_PORT = '8086'                    # Influxdb port
 INFLUX_ORG = 'wineslab'                 # Influxdb organization
 INFLUX_BUCKET = 'wineslab-xapp-demo'    # Influxdb bucket
-INFLUX_TOKEN = 'HaiL1SY6DIY87zKW_J7Ho9I2B_PkVjNgU9Rzcco10rUuSZcDG4OtG2JAtc7w6FU2oTwMiO2Mpd5A_nUPUyvCzA=='   # Influxdb token Colosseum container
+INFLUX_TOKEN = 'HaiL1SY6DIY87zKW_J7Ho9I2B_PkVjNgU9Rzcco10rUuSZcDG4OtG2JAtc7w6FU2oTwMiO2Mpd5A_nUPUyvCzA=='   # Influxdb token
 
 # RE Patterns
 pattern_phc2sys = r"phc2sys\[(\d+\.\d+)\]: CLOCK_REALTIME rms\s+(\d+)\s+max\s+(\d+)\s+freq\s+([+-]?\d+)\s+\+/\-\s+(\d+)\s+delay\s+(\d+)\s+\+/\-\s+(\d+)"
@@ -88,7 +88,7 @@ def create_dict(file, match):
 
     # Create Dictionary
     dict = {
-        "measurement": "sync_stats",
+        "measurement": "sync-stats",
         "tags": {
             "type": "",
         },
