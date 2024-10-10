@@ -291,7 +291,7 @@ if __name__ == "__main__":
     model_type = args.model
     slice_length = args.slice_length
 
-    chunk_size = 1000
+    chunk_size = 500
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
                         'validation_accuracy': [], 'confusion_matrix': []}
 
