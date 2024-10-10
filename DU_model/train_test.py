@@ -317,7 +317,7 @@ if __name__ == "__main__":
         print('Using LSTM')
         model = LSTMClassifier(input_size, hidden_size).to(device)
     elif model_type == 'Transformer':
-        print(f'Using Transformer with {num_heads} number of heads and slice size {slice_length}')
+        print(f'Using Transformer with {num_heads} heads and slice size {slice_length}')
         model = TransformerNN(slice_len=slice_length, nhead=num_heads).to(device)
     elif model_type == 'CNN':
         print(f'Using CNN with slice size {slice_length}')
