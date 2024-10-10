@@ -284,7 +284,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", default='Transformer',
                         help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, GBC, NaiveBayes, RandomForest")
     parser.add_argument("-s", "--slice_length", type=int, default=32, help="Slice length for the Transformer")
-    parser.add_argument("-h", "--num_heads", type=int, default=3, help="Number of Transformer heads")
+    parser.add_argument("-nh", "--num_heads", type=int, default=3, help="Number of Transformer heads")
 
     args = parser.parse_args()
     input_file = args.file_input
