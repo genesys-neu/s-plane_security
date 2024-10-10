@@ -293,7 +293,7 @@ if __name__ == "__main__":
     slice_length = args.slice_length
     num_heads = args.num_heads
 
-    chunk_size = 500
+    chunk_size = 640
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
                         'validation_accuracy': [], 'confusion_matrix': []}
 
