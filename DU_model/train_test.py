@@ -391,7 +391,7 @@ if __name__ == "__main__":
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
         best_val_loss = float('inf')  # Initialize the best validation loss
-        patience = 15  # Number of epochs to wait for improvement
+        patience = 20  # Number of epochs to wait for improvement
         counter = 0  # Counter for patience
 
         # Training loop with evaluation on the validation set
