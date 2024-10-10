@@ -284,12 +284,14 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", default='Transformer',
                         help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, GBC, NaiveBayes, RandomForest")
     parser.add_argument("-s", "--slice_length", type=int, default=32, help="Slice length for the Transformer")
+    parser.add_argument("-h", "--num_heads", type=int, default=3, help="Number of Transformer heads")
 
     args = parser.parse_args()
     input_file = args.file_input
     t_v = args.trial_version
     model_type = args.model
     slice_length = args.slice_length
+    num_heads = args.num_heads
 
     chunk_size = 500
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
@@ -315,8 +317,8 @@ if __name__ == "__main__":
         print('Using LSTM')
         model = LSTMClassifier(input_size, hidden_size).to(device)
     elif model_type == 'Transformer':
-        print(f'Using Transformer with slice size {slice_length}')
-        model = TransformerNN(slice_len=slice_length).to(device)
+        print(f'Using Transformer with {num_heads} number of heads and slice size {slice_length}')
+        model = TransformerNN(slice_len=slice_length, nhead=num_heads).to(device)
     elif model_type == 'CNN':
         print(f'Using CNN with slice size {slice_length}')
         model = CNNModel2D(slice_len=slice_length).to(device)
