@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
         # Plot the confusion matrix
         plt.figure(figsize=(6, 3))
-        sns.heatmap(toverall_confusion_matrix_bg, annot=True, fmt='.2%', cmap='Blues', cbar=False,
+        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False,
                     annot_kws={"size": 24})
         plt.xlabel('Predicted Label', fontsize=18)
         plt.ylabel('True Label', fontsize=18)
