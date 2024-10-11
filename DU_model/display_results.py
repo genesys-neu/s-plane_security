@@ -115,6 +115,11 @@ if __name__ == "__main__":
 
         # Remove internal gridlines
         plt.grid(False)
+        plt.gca().spines['top'].set_visible(True)  # show top line
+        plt.gca().spines['right'].set_visible(True)  # show right line
+        plt.gca().spines['left'].set_visible(True)  # show top line
+        plt.gca().spines['bottom'].set_visible(True)  # show right line
+        plt.tight_layout()
         # Save the confusion matrix plot as a .png file
         plt.savefig(os.path.join(model_dir, f"{model_name}_confusion_matrix.png"))
         plt.close()
