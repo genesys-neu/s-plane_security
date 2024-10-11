@@ -43,6 +43,9 @@ if __name__ == "__main__":
     model_list = []
 
     for root, _, files in os.walk(model_dir):
+        if 'Archive' in root:
+            continue
+
         for model_file in files:
             # Check if the file is a .pth file
             if model_file.endswith(".pth"):
