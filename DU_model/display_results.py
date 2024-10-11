@@ -26,7 +26,7 @@ if __name__ == "__main__":
     model_dir = args.directory
     input_file = args.file_input
     model_type = args.model
-    chunk_size = 1000
+    chunk_size = 640
 
     # Load the data
     _, _, test_data, _, _, test_label = load_data(input_file, chunk_size)
