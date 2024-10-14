@@ -26,7 +26,7 @@ if __name__ == "__main__":
     model_dir = args.directory
     input_file = args.file_input
     model_type = args.model
-    chunk_size = 1000
+    chunk_size = 640
 
     # Load the data
     _, _, test_data, _, _, test_label = load_data(input_file, chunk_size)
@@ -43,6 +43,9 @@ if __name__ == "__main__":
     model_list = []
 
     for root, _, files in os.walk(model_dir):
+        if 'Archive' in root:
+            continue
+
         for model_file in files:
             # Check if the file is a .pth file
             if model_file.endswith(".pth"):
@@ -106,7 +109,7 @@ if __name__ == "__main__":
 
         # Plot the confusion matrix
         plt.figure(figsize=(6, 3))
-        sns.heatmap(toverall_confusion_matrix_bg, annot=True, fmt='.2%', cmap='Blues', cbar=False,
+        sns.heatmap(conf_matrix_normalized, annot=True, fmt='.2%', cmap='Blues', cbar=False,
                     annot_kws={"size": 24})
         plt.xlabel('Predicted Label', fontsize=18)
         plt.ylabel('True Label', fontsize=18)
@@ -115,6 +118,11 @@ if __name__ == "__main__":
 
         # Remove internal gridlines
         plt.grid(False)
+        plt.gca().spines['top'].set_visible(True)  # show top line
+        plt.gca().spines['right'].set_visible(True)  # show right line
+        plt.gca().spines['left'].set_visible(True)  # show top line
+        plt.gca().spines['bottom'].set_visible(True)  # show right line
+        plt.tight_layout()
         # Save the confusion matrix plot as a .png file
         plt.savefig(os.path.join(model_dir, f"{model_name}_confusion_matrix.png"))
         plt.close()
