@@ -5,16 +5,34 @@ import random
 import logging
 import paramiko
 import itertools
+import yaml
+
+
+## PARAMETERS ##
+
+# Load configuration from YAML file
+with open('config.yaml', 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+# Access the variables from the YAML configuration
+REMOTE_HOST = config["REMOTE_HOST"]
+REMOTE_USER = config["REMOTE_USER"]
+REMOTE_PASS = config["REMOTE_PASS"]
+
+CONTAINERIZED = config["CONTAINERIZED"]
+CONTAINER_NAME = config["CONTAINER_NAME"]
+INTERFACE_ATTACK = config["INTERFACE_ATTACK"]
+
+ROOT_DIRECTORY = config["ROOT_DIRECTORY"]
+ATTACKS_DIRECTORY = config["ATTACKS_DIRECTORY"]
+LOGS_DIRECTORY = config["LOGS_DIRECTORY"]
 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
-    logging.FileHandler("attack_app.log"),
+    logging.FileHandler(LOGS_DIRECTORY + "attack_app.log"),
     logging.StreamHandler()
 ])
-
-# Directory containing the attack scripts
-directory = 's-plane_security/Testbed/PipelineTestAttacker/Scripts/'
 
 # Global variables to manage the attack process and status
 if 'is_running' not in st.session_state:
@@ -57,10 +75,6 @@ def display_cycling_images():
 
 
 def start_attack(attack, interface, duration, sleep, filename):
-    remote_host = "10.188.63.225"  # Replace with the actual remote server address
-    remote_user = "orantestbed"  # Replace with the actual remote user
-    remote_password = "op3nran"  # Replace with the actual remote user's password
-
     if not st.session_state.is_running:
         st.session_state.is_running = True
 
@@ -70,25 +84,25 @@ def start_attack(attack, interface, duration, sleep, filename):
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
             # Connect to the remote server
-            ssh.connect(remote_host, username=remote_user, password=remote_password)
+            ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)
 
             # Define the absolute path for the log file
-            log_directory = "/home/orantestbed/s-plane_security/tmp"  # Update this path as needed
+            log_directory = ROOT_DIRECTORY + LOGS_DIRECTORY
             abs_filename = f"{log_directory}/{filename}"  # Absolute path for the log file
             logging.info(f'Absolute filename: {abs_filename}')
 
             # Create the log directory if it doesn't exist
-            create_dir_command = f"mkdir -p {log_directory}"
+            create_dir_command = (f"docker exec {CONTAINER_NAME} " if CONTAINERIZED else "") + f"mkdir -p {log_directory}"
             ssh.exec_command(create_dir_command)
 
             # Create the log file on the remote server with headers
-            create_log_command = f'echo "attack type,attack start,attack end" > {abs_filename}'
+            create_log_command = (f"docker exec {CONTAINER_NAME} " if CONTAINERIZED else "") + f'echo "attack type,attack start,attack end" > {abs_filename}'
             ssh.exec_command(create_log_command)
 
             # Prepare the command to start the attack in the background
             # Redirect output to /dev/null and use nohup to run it independently of the SSH session
             attack_command = (
-                f"echo {remote_password} | sudo -S python3 {attack} "
+                (f"docker exec {CONTAINER_NAME} " if CONTAINERIZED else "") + f"python3 {attack} "
                 f"-i {interface} -d {duration} -s {sleep} -l {abs_filename} "
                 f"> /dev/null 2>&1 & echo $!"
             )
@@ -121,20 +135,16 @@ def stop_attack():
     logging.info("Attempting to stop the attack...")
 
     if st.session_state.attack_pid and st.session_state.is_running:
-        remote_host = "10.188.63.225"  # Replace with the actual remote server address
-        remote_user = "orantestbed"  # Replace with the actual remote user
-        remote_password = "op3nran"  # Replace with the actual remote user's password
-
         try:
             # Initialize SSH client
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
             # Connect to the remote server
-            ssh.connect(remote_host, username=remote_user, password=remote_password)
+            ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)
 
             # Command to kill the process using the stored PID
-            kill_command = f"echo {remote_password} | sudo -S kill -9 {st.session_state.attack_pid}"
+            kill_command = f"echo {REMOTE_PASS} | sudo -S kill -9 {st.session_state.attack_pid}"
             ssh.exec_command(kill_command)
 
             # Use `pgrep` to find all processes related to the script_name
@@ -146,7 +156,7 @@ def stop_attack():
                 logging.info(f"Found PIDs: {pids}")
                 for pid in pids:
                     # Kill each process found with the script_name
-                    kill_command = f"echo {remote_password} | sudo -S kill -9 {pid}"
+                    kill_command = f"echo {REMOTE_PASS} | sudo -S kill -9 {pid}"
                     ssh.exec_command(kill_command)
                     logging.info(f"Sent kill command for PID: {pid}")
                 st.success("Attack stopped successfully.")
@@ -196,7 +206,7 @@ def main():
 
     st.markdown("<h3 style='text-align: center;'>Attack Configuration</h3>", unsafe_allow_html=True)
 
-    interface_a = 'enp4s0'
+    interface_a = INTERFACE_ATTACK
     output_folder = 'tmp'
     attack_duration = st.selectbox("Select Duration Test:", ["random", "fixed", "continuous"])
 
@@ -214,12 +224,13 @@ def main():
     selected_attack = st.selectbox("Select Attack Type:", attacks)
 
     attack_script = None
+    attack_directory = ROOT_DIRECTORY + ATTACKS_DIRECTORY
     if selected_attack == "Replay Attack":
         replay_options = st.selectbox("Select Replay Attack Type:", ["Sync only", "Sync and Follow Up"])
-        attack_script = os.path.join(directory, "Sync_Attack.py") if replay_options == "Sync only" else os.path.join(
-            directory, "Sync_FollowUp_Attack.py")
+        attack_script = os.path.join(attack_directory, "Sync_Attack.py") if replay_options == "Sync only" else os.path.join(
+            attack_directory, "Sync_FollowUp_Attack.py")
     elif selected_attack == "Spoofing Attack":
-        attack_script = os.path.join(directory, "Announce_Attack.py")
+        attack_script = os.path.join(attack_directory, "Announce_Attack.py")
     logging.info(f'Attack script path: {attack_script}')
 
     col1a, col2a = st.columns([1, 1])

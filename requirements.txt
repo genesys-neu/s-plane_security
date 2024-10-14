@@ -9,3 +9,4 @@ sudo
 tcpdump
 streamlit
 paramiko
+pyyaml

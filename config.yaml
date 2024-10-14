@@ -1,0 +1,17 @@
+# SSH Configurations - Replace these values with actual server information
+REMOTE_HOST: "10.112.100.102"
+REMOTE_USER: "aerial"
+REMOTE_PASS: "nvidia"
+CONTAINERIZED: true
+
+# Container and attack configurations
+CONTAINERIZED: true
+CONTAINER_NAME: "ptp-attacks"
+INTERFACE_ATTACK: "ens6f0"
+
+# Directories containing the project codebase
+ROOT_DIRECTORY: "/home/s-plane_security/"
+ATTACKS_DIRECTORY: "Testbed/PipelineTestAttacker/Scripts/"
+MONITOR_DIRECTORY: "./"
+MODELS_DIRECTORY: "/home/s-plane_security/DU_model/Transformer/"
+LOGS_DIRECTORY: "logs/"

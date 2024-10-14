@@ -5,11 +5,33 @@ import logging
 import subprocess
 import seaborn as sns
 import matplotlib.pyplot as plt
+import yaml
+
+
+## PARAMETERS ##
+
+# Load configuration from YAML file
+with open('config.yaml', 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+# Access the variables from the YAML configuration
+REMOTE_HOST = config["REMOTE_HOST"]
+REMOTE_USER = config["REMOTE_USER"]
+REMOTE_PASS = config["REMOTE_PASS"]
+
+CONTAINERIZED = config["CONTAINERIZED"]
+CONTAINER_NAME = config["CONTAINER_NAME"]
+INTERFACE_ATTACK = config["INTERFACE_ATTACK"]
+
+ROOT_DIRECTORY = config["ROOT_DIRECTORY"]
+MONITOR_DIRECTORY = config["MONITOR_DIRECTORY"]
+MODELS_DIRECTORY = config["MODELS_DIRECTORY"]
+LOGS_DIRECTORY = config["LOGS_DIRECTORY"]
 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
-    logging.FileHandler("monitor_app.log"),
+    logging.FileHandler(LOGS_DIRECTORY + "monitor_app.log"),
     logging.StreamHandler()
 ])
 
@@ -21,12 +43,11 @@ if 'terminating' not in st.session_state:
 
 
 def start_monitor(model_path, interface, timeout):
-    ssh_host = "10.188.57.241"
-    ssh_user = "orantestbed"
-    ssh_password = "op3nran"
     prediction_count = 0
 
-    command = f"python3 s-plane_security/pipeline_demo2.py -m {model_path} -i {interface}"
+    command = (f"docker exec {CONTAINER_NAME} " if CONTAINERIZED else "") +\
+              f" python3 {ROOT_DIRECTORY}pipeline_demo2.py -m {model_path} -i {interface}"
+    
     if timeout:
         command += f" -t {timeout}"
 
@@ -44,7 +65,7 @@ def start_monitor(model_path, interface, timeout):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(ssh_host, username=ssh_user, password=ssh_password)
+        ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)
 
         stdin, stdout, stderr = ssh.exec_command(command, get_pty=True)
 
@@ -118,17 +139,13 @@ def stop_monitor():
     logging.info("Attempting to stop the monitor...")
 
     if st.session_state.is_running:
-        remote_host = "10.188.57.241"  # Replace with the actual remote server address
-        remote_user = "orantestbed"  # Replace with the actual remote user
-        remote_password = "op3nran"  # Replace with the actual remote user's password
-
         try:
             # Initialize SSH client
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
             # Connect to the remote server
-            ssh.connect(remote_host, username=remote_user, password=remote_password)
+            ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)
 
             # Use `pgrep` to find all processes related to the script_name
             find_process_command = f"pgrep -f pipeline_demo2"
@@ -139,7 +156,7 @@ def stop_monitor():
                 logging.info(f"Found PIDs: {pids}")
                 for pid in pids:
                     # Kill each process found with the script_name
-                    kill_command = f"echo {remote_password} | sudo -S kill -9 {pid}"
+                    kill_command = f"echo {REMOTE_PASS} | sudo -S kill -9 {pid}"
                     ssh.exec_command(kill_command)
                     logging.info(f"Sent kill command for PID: {pid}")
                 # st.success("Monitor stopped successfully.")
@@ -188,10 +205,10 @@ def main():
     st.markdown("<h3 style='text-align: center;'>Monitor Configuration</h1>", unsafe_allow_html=True)
 
     timeout = st.text_input("Timeout (in seconds, leave blank for continuous)", help="Leave blank to run continuously")
-    model_path = st.text_input("Model weights path",
-                               value="s-plane_security/DU_model/Transformer/best_model_tr_new.3.40.pth",
-                               help="Enter the full path to the model weights file")
-    interface = st.text_input("Network interface to listen on", value="enp1s0f1np1",
+    model = st.text_input("Model weights path",
+                               value="best_model_prod1_tr.2.32.pth",
+                               help="Enter the model weights file")
+    interface = st.text_input("Network interface to listen on", value="ens6f0",
                               help="Enter the network interface to listen on")
 
     # status_placeholder = st.empty()
@@ -223,7 +240,7 @@ def main():
                 st.rerun()
 
     if st.session_state.is_running:
-        start_monitor(model_path, interface, timeout)
+        start_monitor(MODELS_DIRECTORY + model, interface, timeout)
 
     # Author footnote
     author_text = """
