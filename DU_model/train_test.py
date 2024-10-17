@@ -285,6 +285,8 @@ if __name__ == "__main__":
                         help="Choose Transformer, LSTM, CNN, LogisticRegression, KNN, DecisionTree, GBC, NaiveBayes, RandomForest")
     parser.add_argument("-s", "--slice_length", type=int, default=32, help="Slice length for the Transformer")
     parser.add_argument("-nh", "--num_heads", type=int, default=3, help="Number of Transformer heads")
+    parser.add_argument("-p", "--pretrained_model", default=None,
+                        help="Path to the pre-trained model weights (.pth file)")
 
     args = parser.parse_args()
     input_file = args.file_input
@@ -292,6 +294,8 @@ if __name__ == "__main__":
     model_type = args.model
     slice_length = args.slice_length
     num_heads = args.num_heads
+    pretrained_model = args.pretrained_model
+    model_loaded = False
 
     chunk_size = 640
     training_metrics = {'epochs': [], 'training_loss': [], 'training_accuracy': [], 'validation_loss': [],
@@ -319,6 +323,17 @@ if __name__ == "__main__":
     elif model_type == 'Transformer':
         print(f'Using Transformer with {num_heads} heads and slice size {slice_length}')
         model = TransformerNN(slice_len=slice_length, nhead=num_heads).to(device)
+        # Try loading pre-trained model weights if provided
+        if pretrained_model:
+            try:
+                model.load_state_dict(torch.load(pretrained_model))
+                print(f"Loaded pre-trained model from {pretrained_model}")
+                model_loaded = True
+            except Exception as e:
+                print(f"Error loading pre-trained model: {e}")
+                print("Training Transformer model from scratch instead.")
+        else:
+            print("Training Transformer model from scratch")
     elif model_type == 'CNN':
         print(f'Using CNN with slice size {slice_length}')
         model = CNNModel2D(slice_len=slice_length).to(device)
@@ -387,7 +402,13 @@ if __name__ == "__main__":
         criterion = WeightedBCELoss(weight_fp=1, weight_fn=1)
 
         # Define optimizer (Adam) and learning rate scheduler
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        if model_loaded:
+            print("Fine-tuning the pre-trained model with a reduced learning rate")
+            optimizer = optim.Adam(model.parameters(), lr=0.0001)
+        else:
+            print("Training from scratch with the default learning rate")
+            optimizer = optim.Adam(model.parameters(), lr=0.001)
+
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
         best_val_loss = float('inf')  # Initialize the best validation loss
