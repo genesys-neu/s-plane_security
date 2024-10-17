@@ -50,9 +50,15 @@ def label_data(df):
     df['Label'] = 0
 
     # Set 'Label' to 1 where both conditions are true
-    # df.loc[(df['Source'] == 'b8:ce:f6:5e:6b:4a') &
+    # df.loc[(df['Source'] == 'b8:ce:f6:5e:6a:fa') &
     #        (df['Time'] >= 78.506815) &
     #        (df['Time'] <= 102.512281), 'Label'] = 1
+    times_df = pd.read_csv("../DataCollectionPTP/15min_announce_attack_only.csv")
+    times_set = set(times_df['Time'].values)
+
+    # Set 'Label' to 1 where both conditions are true
+    df.loc[(df['Source'] == 'b8:ce:f6:5e:6a:fa') &
+           (df['Time'].isin(times_set)), 'Label'] = 1
 
     return df
 
@@ -75,7 +81,7 @@ def load_data(input_file):
     df, mapping = map_categories(df, ['Source', 'Destination'])
 
     # Map the MessageType to integers
-    df = map_message_types(df)
+    # df = map_message_types(df)
 
     # Calculate the time interval between rows
     df['Time Interval'] = df['Time'].diff().fillna(0)

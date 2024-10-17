@@ -43,7 +43,7 @@ def pcap_to_csv(input_file, output_file, chunk_size=1000):
                         if packet[Ether].type == 35063:
                             protocol = "PTPv2"
                             sequenceid = int.from_bytes(packet.load[30:32], byteorder='big')
-                            messagetype = ptp_message_types[int.from_bytes(packet.load[:1], byteorder='big')]
+                            messagetype = int.from_bytes(packet.load[:1], byteorder='big')
                             time= packet.time-start_time
                             source =src_eth
                             destination = dst_eth
