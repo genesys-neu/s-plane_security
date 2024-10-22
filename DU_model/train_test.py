@@ -513,7 +513,7 @@ if __name__ == "__main__":
             scheduler.step()
 
             # Print average loss and accuracy for each epoch
-            print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
+            print(f'Epoch {epoch + 1}, Patience Counter: {counter}, '
                   f'Training Loss: {running_loss / len(train_loader):.4f}, '
                   f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
                   f'Validation Loss: {val_loss / len(val_loader):.4f}, '
