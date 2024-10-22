@@ -404,7 +404,7 @@ if __name__ == "__main__":
         # Define optimizer (Adam) and learning rate scheduler
         if model_loaded:
             print("Fine-tuning the pre-trained model with a reduced learning rate")
-            optimizer = optim.Adam(model.parameters(), lr=0.0001)
+            optimizer = optim.Adam(model.parameters(), lr=0.0005)
         else:
             print("Training from scratch with the default learning rate")
             optimizer = optim.Adam(model.parameters(), lr=0.001)
