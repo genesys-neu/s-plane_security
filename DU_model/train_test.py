@@ -404,7 +404,7 @@ if __name__ == "__main__":
         # Define optimizer (Adam) and learning rate scheduler
         if model_loaded:
             print("Fine-tuning the pre-trained model with a reduced learning rate")
-            optimizer = optim.Adam(model.parameters(), lr=0.0001)
+            optimizer = optim.Adam(model.parameters(), lr=0.0005)
         else:
             print("Training from scratch with the default learning rate")
             optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -513,7 +513,7 @@ if __name__ == "__main__":
             scheduler.step()
 
             # Print average loss and accuracy for each epoch
-            print(f'Epoch {epoch + 1}, Batch Size: {batch_size}, '
+            print(f'Epoch {epoch + 1}, Patience Counter: {counter}, '
                   f'Training Loss: {running_loss / len(train_loader):.4f}, '
                   f'Training Accuracy: {running_accuracy / len(train_loader):.4f}, '
                   f'Validation Loss: {val_loss / len(val_loader):.4f}, '

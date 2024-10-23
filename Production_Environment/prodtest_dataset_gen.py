@@ -53,7 +53,7 @@ def label_data(df):
     # df.loc[(df['Source'] == 'b8:ce:f6:5e:6a:fa') &
     #        (df['Time'] >= 78.506815) &
     #        (df['Time'] <= 102.512281), 'Label'] = 1
-    times_df = pd.read_csv("../DataCollectionPTP/15min_announce_attack_only.csv")
+    times_df = pd.read_csv("../DataCollectionPTP/announce_attack_only2.csv")
     times_set = set(times_df['Time'].values)
 
     # Set 'Label' to 1 where both conditions are true
