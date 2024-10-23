@@ -7,6 +7,18 @@ from scapy.all import *
 import signal  #SIMONE add signal library
 import subprocess
 import os
+import time
+import threading
+import yaml
+
+
+# Load configuration from YAML file
+with open('/home/s-plane_security/config.yaml', 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+# Access the variables from the YAML configuration
+CONTAINERIZED = config["CONTAINERIZED"]
+
 
 
 mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
@@ -23,12 +35,12 @@ def start_tcpdump(file_path, interface):
     # Check if the file exists and remove it using sudo
     if os.path.exists(file_path):
         try:
-            subprocess.run(f"echo {password} | sudo -S rm {file_path}", shell=True, check=True)
+            subprocess.run((f"echo {password} | sudo -S " if not CONTAINERIZED else "") + f"rm {file_path}", shell=True, check=True)
             print(f"Removed existing file: {file_path}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to remove the file: {e}")
 
-    tcpdump_command = f"echo {password} | sudo -S tcpdump -B 1 -U -i {interface} -w {file_path} ether proto 0x88f7"
+    tcpdump_command = (f"echo {password} | sudo -S " if not CONTAINERIZED else "") + f"tcpdump -B 1 -U -i {interface} -w {file_path} ether proto 0x88f7"
     process = subprocess.Popen(tcpdump_command, shell=True)
     return process
 

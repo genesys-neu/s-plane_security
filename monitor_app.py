@@ -135,6 +135,25 @@ def start_monitor(model_path, interface, timeout):
         st.rerun()
 
 
+def kill_processes(ssh, pgrep_name):
+    # Use `pgrep` to find all processes related to the script_name
+    find_process_command = f"pgrep -f {pgrep_name}"
+    stdin, stdout, stderr = ssh.exec_command(find_process_command)
+    pids = stdout.read().decode().strip().split()
+
+    if pids:
+        logging.info(f"Found PIDs: {pids}")
+        for pid in pids:
+            # Kill each process found with the script_name
+            kill_command = f"echo {REMOTE_PASS} | sudo -S kill -9 {pid}"
+            ssh.exec_command(kill_command)
+            logging.info(f"Sent kill command for PID: {pid}")
+        # st.success("Monitor stopped successfully.")
+    else:
+        st.warning(f"No running processes found.")
+        logging.warning(f"No PIDs found")
+
+
 def stop_monitor():
     logging.info("Attempting to stop the monitor...")
 
@@ -147,22 +166,8 @@ def stop_monitor():
             # Connect to the remote server
             ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)
 
-            # Use `pgrep` to find all processes related to the script_name
-            find_process_command = f"pgrep -f pipeline_demo2"
-            stdin, stdout, stderr = ssh.exec_command(find_process_command)
-            pids = stdout.read().decode().strip().split()
-
-            if pids:
-                logging.info(f"Found PIDs: {pids}")
-                for pid in pids:
-                    # Kill each process found with the script_name
-                    kill_command = f"echo {REMOTE_PASS} | sudo -S kill -9 {pid}"
-                    ssh.exec_command(kill_command)
-                    logging.info(f"Sent kill command for PID: {pid}")
-                # st.success("Monitor stopped successfully.")
-            else:
-                st.warning(f"No running processes found.")
-                logging.warning(f"No PIDs found")
+            kill_processes(ssh, 'pipeline_demo2')
+            kill_processes(ssh, 'tcpdump')
 
             st.session_state.is_running = False
             st.session_state.terminating = False
