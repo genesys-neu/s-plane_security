@@ -60,7 +60,8 @@ def start_monitor(model_path, interface, timeout):
     graph_placeholder = st.empty()
 
     # Keep track of last 100 responses for bar chart
-    response_history = []
+    response_history = [-1] * 120
+    time_history = []
 
     try:
         ssh = paramiko.SSHClient()
@@ -68,17 +69,15 @@ def start_monitor(model_path, interface, timeout):
         ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)
 
         stdin, stdout, stderr = ssh.exec_command(command, get_pty=True)
+        start = time.time()
 
         while st.session_state.is_running:
             output_line = stdout.readline()
             logging.info(f'{output_line}')
 
             if "Predicted label:" in output_line:
-                prediction_count += 1
                 predicted_label = int(output_line.strip().split()[-1])
-                response_history.append(predicted_label)
-                if len(response_history) > 200:
-                    response_history.pop(0)
+                time_history.append(predicted_label)
 
                 if predicted_label == 0:
                     status_placeholder.markdown("<h3 style='color:green;'>🟢 SAFE - No Attack detected</h3>",
@@ -86,26 +85,36 @@ def start_monitor(model_path, interface, timeout):
                 elif predicted_label == 1:
                     status_placeholder.markdown("<h3 style='color:red;'>🔴 Malicious Activity Detected</h3>",
                                                 unsafe_allow_html=True)
-                if prediction_count > 20:
-                    prediction_count = 0
+                if time.time()-start >= 1:
+                    # Check the majority in time_history over the last second
+                    zeros = time_history.count(0)
+                    ones = time_history.count(1)
+                    # Append the majority label to response_history
+                    if zeros > ones:
+                        response_history.append(0)
+                    else:
+                        response_history.append(1)
+                    if len(response_history) > 120:
+                        response_history.pop(0)
+
+                    # Clear time_history for the next second
+                    time_history.clear()
+                    start = time.time()
+
                     with graph_placeholder.container():
                         plt.close()
-                        # Check unique values in response_history
-                        unique_values = set(response_history)
+                        # Define the color palette to handle -1 (white), 0 (green), and 1 (red)
+                        custom_colors = ['#ffffff', 'green', 'red']  # white for None (-1), green for 0, red for 1
+                        cmap = sns.color_palette(custom_colors)
 
-                        # Define color palette based on unique values
-                        if unique_values == {0}:
-                            colors = ['green']  # Only 0s
-                        elif unique_values == {1}:
-                            colors = ['red']  # Only 1s
-                        else:
-                            colors = ['green', 'red']  # Mix of 0s and 1s
                         # Create and display heatmap
                         fig, ax = plt.subplots(figsize=(20, 2))
-                        ax = sns.heatmap([response_history], cmap=sns.color_palette(colors), cbar=False, xticklabels=False,
-                                         yticklabels=False)
-                        ax.set_xlabel('Time')
-                        ax.set_xlabel('Time', fontsize=24)  # Adjust fontsize as needed
+                        ax = sns.heatmap([response_history], cmap=cmap, cbar=False, xticklabels=False,
+                                         yticklabels=False, vmin=-1, vmax=1,)
+                        # ax.set_xlabel('Time')
+                        ax.set_xticks([0, 120 // 2, 120 - 1])  # 0 (left), 60 (middle), 119 (right)
+                        ax.set_xticklabels(['-120', '-60', '0'], fontsize=24)  # Time labels for x-axis
+                        ax.set_xlabel('Time (seconds)', fontsize=36)  # Adjust fontsize as needed
                         st.pyplot(fig)
 
             elif "exited" in output_line:
