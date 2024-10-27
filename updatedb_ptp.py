@@ -17,7 +17,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 # VARIOUS PARAMETERS
 SYNC_FILES = ['/var/log/ptp4l.log', '/var/log/phc2sys.log']       # Path of the files with the data
 SLEEP_TIME = 0.250                      # Sleep time between each operation in seconds
-DELTA_TIME = 1000                       # Delta time for writing data in ms
+DELTA_TIME = 0.500                        # Delta time for writing data in ms
 DATA_FIELD = ['timestamp', 'rms', 'max_offset', 'freq', 'freq_uncertainty', 'delay', 'delay_uncertainty']
 
 # OpenShift influx db parameters
@@ -30,6 +30,7 @@ INFLUX_TOKEN = 'HaiL1SY6DIY87zKW_J7Ho9I2B_PkVjNgU9Rzcco10rUuSZcDG4OtG2JAtc7w6FU2
 # RE Patterns
 pattern_phc2sys = r"phc2sys\[(\d+\.\d+)\]: CLOCK_REALTIME rms\s+(\d+)\s+max\s+(\d+)\s+freq\s+([+-]?\d+)\s+\+/\-\s+(\d+)\s+delay\s+(\d+)\s+\+/\-\s+(\d+)"
 pattern_ptp4l = r"ptp4l\[(\d+\.\d+)\]: rms\s+(\d+)\s+max\s+(\d+)\s+freq\s+([+-]?\d+)\s+\+/\-\s+(\d+)\s+delay\s+(\d+)\s+\+/\-\s+(\d+)"
+pattern_ptp4l_attack = r"ptp4l\[(\d+\.\d+)\]: port 1: assuming the grand master role"
 
 def read_last_line(file):
     """
@@ -52,13 +53,24 @@ def read_last_line(file):
         # Remove new line characters
         line = line.strip()
 
+        # Attack log
+        attack_log = False
+
         # Use Regular Expression to split line
         if 'ptp4l' in file:
             match = re.search(pattern_ptp4l, line)
+
+            # Check if attack match
+            if not match:
+                match = re.search(pattern_ptp4l_attack, line)
+                
+                if match:
+                    attack_log = True
+
         elif 'phc2sys' in file:
             match = re.search(pattern_phc2sys, line)
 
-        return match
+        return match, attack_log
 
 
 def is_valid_timestamp(file, match, timestamp_data):
@@ -74,14 +86,14 @@ def is_valid_timestamp(file, match, timestamp_data):
     timestamp = float(match.group(1))
 
     # Update timestamp and return true if not present or newer
-    if (file not in timestamp_data) or (timestamp > timestamp_data[file]):
+    if (file not in timestamp_data) or (timestamp > (timestamp_data[file] + DELTA_TIME)):
         timestamp_data[file] = timestamp
         return True, timestamp_data
 
     return False, timestamp_data
 
 
-def create_dict(file, match):
+def create_dict(file, match, attack_log):
     """
     Create dict data that is going to be written to the db
     """
@@ -102,7 +114,7 @@ def create_dict(file, match):
 
     # Fill all the data
     for i in range(0, len(DATA_FIELD)):
-        dict["fields"][DATA_FIELD[i]] = float(match.group(i+1))
+        dict["fields"][DATA_FIELD[i]] = float(0) if attack_log else (float(match.group(i+1)))
 
     # print(dict)
     return dict
@@ -143,7 +155,7 @@ def main():
             for file in SYNC_FILES:
 
                 # Read last line
-                match = read_last_line(file)
+                match, attack_log = read_last_line(file)
 
                 # Check if need to be sent
                 valid, timestamp_data = is_valid_timestamp(file, match, timestamp_data)
@@ -151,7 +163,7 @@ def main():
                     continue
 
                 # Create file to be written
-                data = create_dict(file, match)
+                data = create_dict(file, match, attack_log)
 
                 # Send new data to influxdb
                 update_influxdb(data)
