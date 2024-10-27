@@ -18,8 +18,7 @@ with open('/home/s-plane_security/config.yaml', 'r') as config_file:
 
 # Access the variables from the YAML configuration
 CONTAINERIZED = config["CONTAINERIZED"]
-
-
+PCAP_FILE_PATH = config["PCAP_FILE_PATH"]
 
 mac_mapping = {}  #Dictionary for MAC mapping {MAC:index}
 index = 0  # Index to map MAC addresses
@@ -31,6 +30,8 @@ def start_tcpdump(file_path, interface):
     and saves them to a file.
     """
     password = 'op3nran'
+
+    file_path = PCAP_FILE_PATH
 
     # Check if the file exists and remove it using sudo
     if os.path.exists(file_path):
@@ -271,8 +272,7 @@ if __name__ == "__main__":
     # Set the desired_sequence_length based on the command-line argument
     # desired_sequence_length = args.length SIMONE COMMENTED BECAUSE NOT USED AND GENERATES AN ERROR
 
-    # Path to the file where tcpdump will save packets
-    pcap_file_path = "/tmp/ptp_packets.pcap"
+    pcap_file_path = PCAP_FILE_PATH
 
     # Start tcpdump on the specified interface
     tcpdump_process = start_tcpdump(pcap_file_path, args.interface)
@@ -324,6 +324,19 @@ if __name__ == "__main__":
             exit_flag.set()
         else:
             while not exit_flag.is_set():
+
+                if not os.path.exists(pcap_file_path):
+                    # If the file is missing, kill the current tcpdump process
+                    tcpdump_process.terminate()  # First try to terminate
+                    tcpdump_process.wait()  # Wait for the process to terminate
+
+                    # Check and kill any remaining tcpdump processes
+                    kill_tcpdump_processes()
+                
+                    # Restart the tcpdump process
+                    tcpdump_process = start_tcpdump(pcap_file_path, args.interface)
+                    print("PCAP file missing. Restarting tcpdump...")
+
                 time.sleep(1)  # Main thread sleeps to keep the program running
     except KeyboardInterrupt:
         exit_flag.set()
