@@ -70,3 +70,15 @@ This Streamlit GUI allows you to choose different attack parameters and execute 
 - The `Testbed` directory contains testbed automation scripts, including the actual attack scripts.
 
 - The `Production_Environment` folder includes visualization tools and experimental results from our production setup.
+
+
+
+# ⚠️ Disclaimer
+
+**This software is knowingly designed to illustrate technique(s) intended to defeat a system's security.**  
+ 
+This repository is intended **solely for research, education, and authorized security testing**.  Do **not** use any part of this software on production systems, live networks, or any system for which you do not have explicit permission. The authors and affiliated institutions assume **no liability for misuse** of this software or its derivatives.  
+
+**Licenses:**  
+**Documentation:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)  
+**Code:** [MIT License](LICENSE)
