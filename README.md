@@ -8,15 +8,19 @@ In our [accompanying paper](https://arxiv.org/abs/2412.13049), we demonstrate ho
 > ⚠️ If you use this repository, please consider citing our paper:
 >
 > ```bibtex
-> @misc{groen2024timesafetiminginterruptionmonitoring,
->       title={TIMESAFE: Timing Interruption Monitoring and Security Assessment for Fronthaul Environments}, 
->       author={Joshua Groen and Simone Di Valerio and Imtiaz Karim and Davide Villa and Yiewi Zhang and Leonardo Bonati and Michele Polese and Salvatore D'Oro and Tommaso Melodia and Elisa Bertino and Francesca Cuomo and Kaushik Chowdhury},
->       year={2024},
->       eprint={2412.13049},
->       archivePrefix={arXiv},
->       primaryClass={cs.NI},
->       url={https://arxiv.org/abs/2412.13049}, 
-> }
+> @article{groen2025timesafe,
+>  author    = {Joshua Groen and Simone Di Valerio and Imtiaz Karim and Davide Villa and Yiwei Zhang and Leonardo Bonati and Michele Polese and Salvatore D'Oro and Tommaso Melodia and Elisa Bertino and Francesca Cuomo and Kaushik Chowdhury},
+>  title     = {TIMESAFE: Timing Interruption Monitoring and Security Assessment for Fronthaul Environments},
+>  journal   = {ACM Transactions on Privacy and Security (TOPS)},
+>  volume    = {28},
+>  number    = {5},
+>  articleno = {0286},
+>  pages     = {1--31},
+>  year      = {2025},
+>  month     = {December},
+>  doi       = {10.1145/3775060},
+>  url       = {https://doi.org/10.1145/3775060}
+>}
 > ```
 
 ---
